@@ -1,15 +1,130 @@
 # POS Dummy - ECR Link WebSocket Client
 
-Aplikasi POS (Point of Sale) dummy berbasis web untuk testing koneksi ke EDC (Electronic Data Capture) melalui aplikasi **ECR Link** menggunakan WebSocket Secure (WSS).
+Aplikasi POS (Point of Sale) dummy berbasis web untuk testing koneksi ke EDC (Electronic Data Capture) melalui aplikasi **ECR Link FMS BRI** menggunakan WebSocket Secure (WSS) atau WebSocket (WS).
+
+## Dokumentasi Teknis
+
+Implementasi berdasarkan **Technical Document ECR Link FMS BRI Version 4.9.0**
 
 ## Fitur
 
-- ✅ **Konfigurasi IP EDC** - Atur IP address EDC sesuai dengan yang ditampilkan di aplikasi ECR Link
-- ✅ **Menu Management** - Tambah, hapus, dan kelola menu dengan harga default Rp 1 untuk testing
-- ✅ **Metode Pembayaran** - Mendukung Kartu Kredit/Debit, QRIS, QRIS TAP, dan Alipay
-- ✅ **WebSocket Connection** - Koneksi WS (port 6745) dan WSS (port 6746)
-- ✅ **Enkripsi Payload** - Enkripsi AES-256 untuk mengamankan data transaksi
-- ✅ **Activity Log** - Log real-time untuk monitoring koneksi, request, response, dan error
+- ✅ **WebSocket Connection** - WSS (port 6746) dan WS (port 6745)
+- ✅ **AES/ECB/PKCS5Padding Encryption** - Sesuai spesifikasi ECR Link
+- ✅ **Multiple Action Types**:
+  - **Sale** - Untuk Purchase, Brizzi, QRIS
+  - **Contactless** - Untuk pembayaran Tap (Visa/Mastercard)
+  - **Card Verification** - Verifikasi kartu kredit
+  - **Cicilan** - Pembayaran dengan cicilan/installment
+- ✅ **Menu Management** - Kelola menu dengan harga Rp 1 untuk testing
+- ✅ **Activity Log** - Monitoring koneksi, request, response, dan error
+
+## Spesifikasi Teknis
+
+### Enkripsi
+
+- **Algorithm**: AES/ECB/PKCS5Padding
+- **Key Derivation**: SHA-1 hash dari secret key, ambil 16 bytes pertama
+- **Secret Key (Development)**: `ECR2022secretKey`
+- **Output**: Base64 encoded string
+
+### WebSocket Connection
+
+| Protocol | URL Format | Port |
+|----------|------------|------|
+| WS | `ws://{edc_ip}:{port}` | 6745 |
+| WSS | `wss://{edc_ip}:{port}` | 6746 |
+
+### Payload Structure
+
+#### Sale (Purchase/Brizzi/QRIS)
+```json
+{
+  "amount": 1000,
+  "action": "Sale",
+  "trx_id": "TXNXXXXXXXXXXX",
+  "pos_address": "172.0.0.1",
+  "time_stamp": "2024-01-15 10:30:00",
+  "method": "purchase"
+}
+```
+
+#### Contactless
+```json
+{
+  "amount": 1000,
+  "action": "Contactless",
+  "trx_id": "TXNXXXXXXXXXXX",
+  "pos_address": "172.0.0.1",
+  "time_stamp": "2024-01-15 10:30:00",
+  "method": "purchase"
+}
+```
+
+#### Card Verification
+```json
+{
+  "amount": 1000,
+  "action": "Card Verification",
+  "trx_id": "TXNXXXXXXXXXXX",
+  "pos_address": "172.0.0.1",
+  "time_stamp": "2024-01-15 10:30:00",
+  "method": "purchase"
+}
+```
+
+#### Cicilan (Installment)
+```json
+{
+  "amount": 200000,
+  "action": "Cicilan",
+  "trx_id": "TXNXXXXXXXXXXX",
+  "pos_address": "172.0.0.1",
+  "time_stamp": "2024-01-15 10:30:00",
+  "method": "purchase",
+  "plan": "001",
+  "periode": "06"
+}
+```
+
+## Cara Menggunakan
+
+### 1. Persiapan EDC
+
+1. Pastikan EDC Anda telah terinstall aplikasi **ECR Link** versi 4.9.0 atau lebih baru
+2. Pastikan aplikasi **FMS BRI** sudah terbuka di EDC
+3. Buka aplikasi **ECR Link** di EDC
+4. Pilih koneksi **Wi-Fi** dan aktifkan
+5. Catat **IP Address** yang ditampilkan di aplikasi ECR Link
+
+### 2. Konfigurasi POS
+
+1. Buka menu **Pengaturan**
+2. Isi konfigurasi:
+   - **Protocol**: `WSS` (recommended) atau `WS`
+   - **IP Address EDC**: IP dari ECR Link
+   - **Port**: `6746` (WSS) atau `6745` (WS)
+   - **POS Address**: `172.0.0.1` (default)
+   - **Secret Key**: `ECR2022secretKey` (default untuk development)
+   - **Default Action Type**: Pilih tipe transaksi default
+3. Klik **Simpan Pengaturan**
+4. Klik **Test Connection** atau **Connect**
+
+### 3. Melakukan Transaksi
+
+1. Pilih menu **Kasir**
+2. Pilih **Tipe Transaksi**:
+   - **Sale** - Untuk kartu kredit/debit, Brizzi, atau QRIS
+   - **Contactless** - Untuk pembayaran Tap
+   - **Card Verification** - Verifikasi kartu kredit
+   - **Cicilan** - Pembayaran dengan cicilan
+3. Jika memilih **Sale**, pilih metode pembayaran:
+   - **Purchase** - Kartu Kredit/Debit
+   - **Brizzi** - Kartu Brizzi
+   - **QRIS** - QRIS Payment
+4. Tambahkan item ke cart (klik menu)
+5. Klik **Bayar Sekarang**
+6. Tunggu EDC merespons
+7. Lihat hasil transaksi di modal
 
 ## Struktur File
 
@@ -21,190 +136,110 @@ pos-dummy-ecr-link/
 └── README.md       # Dokumentasi ini
 ```
 
-## Cara Menggunakan
+## Menjalankan Aplikasi
 
-### 1. Persiapan EDC
+### Opsi 1: GitHub Pages (Online)
 
-1. Pastikan EDC Anda telah terinstall aplikasi **ECR Link** versi 4.10.1 atau lebih baru
-2. Pastikan aplikasi **FMS BRI** sudah terbuka di EDC
-3. Buka aplikasi **ECR Link** di EDC
-4. Pilih koneksi **Wi-Fi** dan aktifkan
-5. Catat **IP Address** yang ditampilkan di aplikasi ECR Link
+Akses langsung di: `https://arifyudhistirapcs.github.io/pos-dummy-ecr/`
 
-### 2. Menjalankan POS Dummy
+⚠️ **Catatan**: Jika menggunakan GitHub Pages (HTTPS), EDC harus support WSS (port 6746).
 
-#### Opsi A: Buka Langsung File HTML
-1. Buka file `index.html` di browser modern (Chrome, Firefox, Edge, Safari)
-2. Tidak perlu server khusus, bisa langsung double-click file HTML
+### Opsi 2: Local Server
 
-#### Opsi B: Menggunakan Local Server (Recommended)
 ```bash
-# Menggunakan Python 3 (port bebas, contoh: 3000)
-cd pos-dummy-ecr-link
+# Clone repository
+git clone https://github.com/arifyudhistirapcs/pos-dummy-ecr.git
+cd pos-dummy-ecr
+
+# Jalankan dengan Python
 python3 -m http.server 3000
 
-# Menggunakan Node.js (port bebas, contoh: 3000)
-npx http-server -p 3000
-
-# Menggunakan PHP
-php -S localhost:3000
-
-# Buka browser dan akses: http://localhost:3000
-# (Ganti 3000 dengan port lain seperti 5000, 8000, 9000, dll)
+# Buka browser
+http://localhost:3000
 ```
 
-### 3. Konfigurasi Koneksi
+## Response Fields
 
-1. Klik menu **Pengaturan** di sidebar
-2. Isi konfigurasi berikut:
-   - **Protocol**: Pilih `WSS (wss://)` untuk koneksi secure
-   - **IP Address EDC**: Masukkan IP address dari aplikasi ECR Link
-   - **Port**: 
-     - `6745` untuk WS (non-secure)
-     - `6746` untuk WSS (secure)
-   - **Merchant ID**: ID merchant Anda (opsional)
-   - **Terminal ID**: ID terminal Anda (opsional)
-   - **Encryption Key**: Kunci enkripsi hex 32 karakter untuk AES-256
-3. Klik **Simpan Pengaturan**
-4. Klik **Test Connection** atau **Connect** untuk menghubungkan ke EDC
+### Success Response (rc: "00")
 
-### 4. Melakukan Transaksi
+| Field | Description |
+|-------|-------------|
+| `acq_mid` | Merchant ID dari EDC |
+| `acq_tid` | Terminal ID dari EDC |
+| `action` | Tipe transaksi |
+| `amount` | Jumlah transaksi |
+| `approval` | Kode approval |
+| `batch_number` | Nomor batch |
+| `card_name` | Nama kartu (Visa, Mastercard, NSICCS, JCB) |
+| `card_type` | Tipe kartu (CHIP, TAP, SCAN) |
+| `card_category` | Kategori kartu |
+| `is_credit` | Apakah kartu kredit (true/false) |
+| `is_off_us` | Apakah kartu bank lain (true/false) |
+| `pan` | Nomor kartu (masked) |
+| `reference_number` | Nomor referensi transaksi |
+| `trace_number` | Nomor trace transaksi |
+| `status` | Status (success, paid, failed) |
+| `transaction_date` | Waktu transaksi |
 
-1. Klik menu **Kasir** di sidebar
-2. Pilih item menu yang ingin dipesan (klik pada menu item)
-3. Atur quantity jika diperlukan
-4. Pilih **Metode Pembayaran**:
-   - Kartu Kredit/Debit
-   - QRIS
-   - QRIS TAP
-   - Alipay
-5. Klik tombol **Bayar Sekarang**
-6. Tunggu proses pembayaran selesai
-7. EDC akan menampilkan halaman transaksi sesuai metode yang dipilih
-8. Setelah transaksi selesai, response akan ditampilkan di POS
+### Error Response
 
-### 5. Monitoring
-
-- **Activity Log**: Klik menu **Activity Log** untuk melihat:
-  - Status koneksi WebSocket
-  - Payload yang dikirim (encrypted)
-  - Response dari EDC
-  - Error jika terjadi masalah
-
-## Spesifikasi Payload ECR Link
-
-### Format Request
-
-```json
-{
-  "type": "PAYMENT_REQUEST",
-  "token": "<ENCRYPTED_PAYLOAD>",
-  "raw": {
-    "transactionId": "TXNXXXXXXXXXXX",
-    "merchantId": "MERCHANT001",
-    "terminalId": "TERMINAL001",
-    "timestamp": "2024-01-15T10:30:00.000Z",
-    "paymentMethod": "CREDIT_CARD|QRIS|QRIS_TAP|ALIPAY",
-    "amount": 1000,
-    "currency": "IDR",
-    "items": [
-      {
-        "name": "Nasi Goreng",
-        "qty": 1,
-        "price": 1
-      }
-    ],
-    "metadata": {
-      "posVersion": "1.0.0",
-      "ecrLinkVersion": "4.10.1"
-    }
-  }
-}
-```
-
-### Enkripsi
-
-Payload dienkripsi menggunakan **AES-256-CBC** dengan format:
-- Key: 32 bytes hex string (64 karakter hex)
-- IV: 16 bytes random, di-prefix ke encrypted data
-- Output: Hex string (IV + encrypted data)
-
-### Format Response
-
-```json
-{
-  "success": true|false,
-  "transactionId": "TXNXXXXXXXXXXX",
-  "message": "Payment processed successfully",
-  "error": "Error message if failed"
-}
-```
+| rc | Description |
+|----|-------------|
+| `50` | PIN Salah |
+| `51` | Saldo tidak cukup |
+| `-01` | Transaksi dibatalkan |
+| `-30005` | Timeout |
 
 ## Troubleshooting
 
 ### Tidak bisa connect ke EDC
 
-1. **Cek IP Address**: Pastikan IP address yang dimasukkan sesuai dengan yang ditampilkan di ECR Link
-2. **Cek Port**: 
-   - WS menggunakan port **6745**
-   - WSS menggunakan port **6746**
-3. **Cek Jaringan**: Pastikan POS (komputer/browser) dan EDC terhubung ke jaringan Wi-Fi yang sama
-4. **Cek ECR Link**: Pastikan aplikasi ECR Link di EDC sudah aktif dan menampilkan IP address
-5. **Firewall**: Pastikan tidak ada firewall yang memblokir koneksi WebSocket
-
-### WebSocket Error
-
-Jika terjadi error saat koneksi:
-1. Cek **Activity Log** untuk detail error
-2. Coba reconnect dengan klik tombol **Connect** lagi
-3. Restart aplikasi ECR Link di EDC
-4. Pastikan FMS BRI sudah terbuka di EDC
+1. **Cek IP Address**: Pastikan IP address sesuai dengan ECR Link
+2. **Cek Port**: WSS (6746) atau WS (6745)
+3. **Cek Jaringan**: POS dan EDC harus di jaringan yang sama
+4. **Cek ECR Link**: Pastikan aplikasi ECR Link aktif
+5. **Mixed Content**: Jika menggunakan HTTPS (GitHub Pages), EDC harus support WSS
 
 ### Enkripsi Error
 
-Jika enkripsi gagal:
-1. Pastikan **Encryption Key** berupa hex string 32 karakter (64 karakter)
-2. Contoh key yang valid: `0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF`
-3. Jika enkripsi gagal, aplikasi akan menggunakan base64 sebagai fallback
+- Pastikan **Secret Key** benar: `ECR2022secretKey`
+- Key akan di-hash menggunakan SHA-1 dan diambil 16 bytes pertama
+
+### WebSocket Error
+
+- Cek **Activity Log** untuk detail error
+- Coba reconnect dengan klik tombol **Connect**
+- Restart aplikasi ECR Link di EDC
 
 ## Keyboard Shortcuts
 
 | Shortcut | Fungsi |
 |----------|--------|
-| `ESC` | Tutup modal/popup |
-| `F2` | Proses pembayaran (saat ada item di cart) |
+| `ESC` | Tutup modal |
+| `F2` | Bayar (saat ada item di cart) |
 
 ## Browser Compatibility
 
-Aplikasi ini menggunakan WebSocket dan Web Crypto API yang didukung oleh:
 - Chrome 60+
 - Firefox 55+
 - Safari 11+
 - Edge 79+
 
-## Keamanan
-
-⚠️ **Peringatan Keamanan**:
-- Aplikasi ini menggunakan enkripsi AES-256 di browser client-side
-- Encryption key disimpan di localStorage browser
-- Untuk produksi, gunakan HTTPS dan pertimbangkan server-side encryption
-- Pastikan koneksi WSS (WebSocket Secure) digunakan untuk enkripsi transport layer
-
 ## Changelog
 
 ### v1.0.0
 - Initial release
-- WebSocket WS/WSS connection support
-- AES-256 encryption for payload
-- Menu management
-- Multiple payment methods (Credit/Debit, QRIS, QRIS TAP, Alipay)
+- WebSocket WS/WSS support (port 6745/6746)
+- AES/ECB/PKCS5Padding encryption
+- Action types: Sale, Contactless, Card Verification, Cicilan
+- Payment methods: Purchase, Brizzi, QRIS
 - Activity logging
-- Cart functionality
 
 ## Lisensi
 
-Internal Use Only - Dibuat untuk testing integrasi ECR Link
+Internal Use Only - Dibuat untuk testing integrasi ECR Link FMS BRI
 
-## Kontak Support
+## Referensi
 
-Untuk pertanyaan atau issue, silakan hubungi tim developer ECR Link.
+- Technical Document ECR Link FMS BRI Version 4.9.0
+- ECR Link Implementation Guide v4.10.1

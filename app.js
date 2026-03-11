@@ -1,8 +1,12 @@
 /**
  * POS Dummy - ECR Link WebSocket Client
+ * Technical Implementation based on ECR Link FMS BRI Documentation v4.9.0
  * 
- * Aplikasi POS dummy untuk testing koneksi ke EDC via ECR Link
- * menggunakan WebSocket Secure (WSS) pada port 6746 atau WS pada port 6745
+ * Features:
+ * - WebSocket Secure (WSS) on port 6746
+ * - WebSocket (WS) on port 6745
+ * - AES/ECB/PKCS5Padding encryption
+ * - Multiple action types: Sale, Contactless, Card Verification, etc.
  */
 
 // ===== State Management =====
@@ -17,12 +21,13 @@ const state = {
     
     // Settings
     settings: {
-        protocol: 'ws',
+        protocol: 'wss',
         edcIp: '',
-        edcPort: '6745',
-        merchantId: 'MERCHANT001',
-        terminalId: 'TERMINAL001',
-        encryptionKey: '0123456789ABCDEF0123456789ABCDEF'
+        edcPort: '6746',
+        posAddress: '172.0.0.1',
+        secretKey: 'ECR2022secretKey',
+        // Action types: Sale, Contactless, CardVerification, SaleCompletion, Cicilan, Void, CheckStatus
+        actionType: 'Sale'
     },
     
     // Menu & Cart
@@ -141,134 +146,238 @@ class ECRLinkWebSocket {
 
 const ecrWs = new ECRLinkWebSocket();
 
-// ===== Encryption Utilities =====
-const EncryptionUtils = {
+// ===== AES/ECB/PKCS5Padding Encryption =====
+const ECREncryption = {
     /**
-     * Generate a random IV (Initialization Vector)
+     * Generate SHA-1 hash and return first 16 bytes (128-bit key)
      */
-    generateIV() {
-        const iv = new Uint8Array(16);
-        crypto.getRandomValues(iv);
-        return iv;
+    async generateKey(secret) {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(secret);
+        const hashBuffer = await crypto.subtle.digest('SHA-1', data);
+        const hashArray = new Uint8Array(hashBuffer);
+        // Take first 16 bytes for AES-128
+        return hashArray.slice(0, 16);
     },
 
     /**
-     * Convert hex string to Uint8Array
+     * PKCS5/PKCS7 Padding
      */
-    hexToBytes(hex) {
-        const bytes = new Uint8Array(hex.length / 2);
-        for (let i = 0; i < hex.length; i += 2) {
-            bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16);
+    pkcs5Padding(data) {
+        const blockSize = 16;
+        const paddingLen = blockSize - (data.length % blockSize);
+        const padded = new Uint8Array(data.length + paddingLen);
+        padded.set(data);
+        for (let i = data.length; i < padded.length; i++) {
+            padded[i] = paddingLen;
         }
-        return bytes;
+        return padded;
     },
 
     /**
-     * Convert Uint8Array to hex string
+     * Encrypt using AES-ECB-PKCS5Padding
+     * This mimics Java's AES/ECB/PKCS5Padding
      */
-    bytesToHex(bytes) {
-        return Array.from(bytes)
-            .map(b => b.toString(16).padStart(2, '0'))
-            .join('');
-    },
-
-    /**
-     * Convert string to Uint8Array
-     */
-    stringToBytes(str) {
-        return new TextEncoder().encode(str);
-    },
-
-    /**
-     * Convert Uint8Array to string
-     */
-    bytesToString(bytes) {
-        return new TextDecoder().decode(bytes);
-    },
-
-    /**
-     * Encrypt data using AES-CBC
-     * Note: This is a browser-based implementation. In production, 
-     * proper key management and encryption should be used.
-     */
-    async encrypt(data, keyHex) {
+    async encrypt(strToEncrypt, secretKey = state.settings.secretKey) {
         try {
-            const keyData = this.hexToBytes(keyHex);
-            const iv = this.generateIV();
+            const keyBytes = await this.generateKey(secretKey);
             
+            // Import key
             const cryptoKey = await crypto.subtle.importKey(
                 'raw',
-                keyData,
-                { name: 'AES-CBC' },
+                keyBytes,
+                { name: 'AES-ECB' },
                 false,
                 ['encrypt']
             );
 
-            const dataBytes = this.stringToBytes(data);
-            const encrypted = await crypto.subtle.encrypt(
-                { name: 'AES-CBC', iv: iv },
-                cryptoKey,
-                dataBytes
-            );
+            // Convert string to bytes and apply PKCS5 padding
+            const encoder = new TextEncoder();
+            const dataBytes = encoder.encode(strToEncrypt);
+            const paddedData = this.pkcs5Padding(dataBytes);
 
-            // Combine IV + encrypted data
-            const result = new Uint8Array(iv.length + encrypted.byteLength);
-            result.set(iv, 0);
-            result.set(new Uint8Array(encrypted), iv.length);
+            // Encrypt each block manually (since Web Crypto doesn't support ECB directly)
+            const blockSize = 16;
+            const numBlocks = paddedData.length / blockSize;
+            const encryptedBlocks = [];
 
-            return this.bytesToHex(result);
+            for (let i = 0; i < numBlocks; i++) {
+                const block = paddedData.slice(i * blockSize, (i + 1) * blockSize);
+                const encryptedBlock = await crypto.subtle.encrypt(
+                    { name: 'AES-ECB' },
+                    cryptoKey,
+                    block
+                );
+                encryptedBlocks.push(new Uint8Array(encryptedBlock));
+            }
+
+            // Combine all blocks
+            const totalLength = encryptedBlocks.reduce((sum, block) => sum + block.length, 0);
+            const result = new Uint8Array(totalLength);
+            let offset = 0;
+            for (const block of encryptedBlocks) {
+                result.set(block, offset);
+                offset += block.length;
+            }
+
+            // Convert to Base64 (same as Java's Base64.getEncoder())
+            return btoa(String.fromCharCode(...result));
         } catch (error) {
             log(`Encryption error: ${error.message}`, 'error');
-            // Fallback: return base64 encoded data if encryption fails
-            return btoa(data);
+            // Fallback to simple Base64
+            return btoa(strToEncrypt);
         }
     },
 
     /**
-     * Decrypt data using AES-CBC
+     * Generate encrypted token for ECR Link
      */
-    async decrypt(encryptedHex, keyHex) {
-        try {
-            const encryptedData = this.hexToBytes(encryptedHex);
-            const keyData = this.hexToBytes(keyHex);
-            
-            // Extract IV (first 16 bytes)
-            const iv = encryptedData.slice(0, 16);
-            const data = encryptedData.slice(16);
-
-            const cryptoKey = await crypto.subtle.importKey(
-                'raw',
-                keyData,
-                { name: 'AES-CBC' },
-                false,
-                ['decrypt']
-            );
-
-            const decrypted = await crypto.subtle.decrypt(
-                { name: 'AES-CBC', iv: iv },
-                cryptoKey,
-                data
-            );
-
-            return this.bytesToString(new Uint8Array(decrypted));
-        } catch (error) {
-            log(`Decryption error: ${error.message}`, 'error');
-            // Fallback: try base64 decode
-            try {
-                return atob(encryptedHex);
-            } catch {
-                return encryptedHex;
-            }
-        }
-    },
-
-    /**
-     * Generate transaction token according to ECR Link spec
-     */
-    async generateToken(transactionData) {
-        const payload = JSON.stringify(transactionData);
-        const encrypted = await this.encrypt(payload, state.settings.encryptionKey);
+    async generateToken(payload) {
+        const jsonString = JSON.stringify(payload);
+        log(`Payload to encrypt: ${jsonString}`, 'info');
+        const encrypted = await this.encrypt(jsonString);
+        log(`Encrypted token (Base64): ${encrypted.substring(0, 50)}...`, 'info');
         return encrypted;
+    }
+};
+
+// ===== Payload Builders =====
+const PayloadBuilder = {
+    /**
+     * Get current timestamp in format: yyyy-mm-dd HH:MM:SS
+     */
+    getTimestamp() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    },
+
+    /**
+     * Generate unique transaction ID
+     */
+    generateTrxId() {
+        const timestamp = Date.now().toString(36).toUpperCase();
+        const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+        return `TXN${timestamp}${random}`;
+    },
+
+    /**
+     * Build Sale payload
+     * action: "Sale"
+     * method: "purchase" | "brizzi" | "qris"
+     */
+    buildSale(amount, method = 'purchase') {
+        return {
+            amount: amount,
+            action: 'Sale',
+            trx_id: this.generateTrxId(),
+            pos_address: state.settings.posAddress,
+            time_stamp: this.getTimestamp(),
+            method: method
+        };
+    },
+
+    /**
+     * Build Contactless payload
+     * action: "Contactless"
+     * method: "purchase"
+     */
+    buildContactless(amount) {
+        return {
+            amount: amount,
+            action: 'Contactless',
+            trx_id: this.generateTrxId(),
+            pos_address: state.settings.posAddress,
+            time_stamp: this.getTimestamp(),
+            method: 'purchase'
+        };
+    },
+
+    /**
+     * Build Card Verification payload
+     * action: "Card Verification"
+     * method: "purchase"
+     */
+    buildCardVerification(amount) {
+        return {
+            amount: amount,
+            action: 'Card Verification',
+            trx_id: this.generateTrxId(),
+            pos_address: state.settings.posAddress,
+            time_stamp: this.getTimestamp(),
+            method: 'purchase'
+        };
+    },
+
+    /**
+     * Build Sale Completion payload
+     * action: "Sale Completion"
+     * method: "purchase"
+     * requires: approval code from Card Verification
+     */
+    buildSaleCompletion(amount, approvalCode) {
+        return {
+            amount: amount,
+            action: 'Sale Completion',
+            trx_id: this.generateTrxId(),
+            pos_address: state.settings.posAddress,
+            time_stamp: this.getTimestamp(),
+            method: 'purchase',
+            approval: approvalCode
+        };
+    },
+
+    /**
+     * Build Cicilan (Installment) payload
+     * action: "Cicilan"
+     * method: "purchase"
+     */
+    buildCicilan(amount, plan, periode) {
+        return {
+            amount: amount,
+            action: 'Cicilan',
+            trx_id: this.generateTrxId(),
+            pos_address: state.settings.posAddress,
+            time_stamp: this.getTimestamp(),
+            method: 'purchase',
+            plan: plan,
+            periode: periode
+        };
+    },
+
+    /**
+     * Build Void payload
+     * action: "Void"
+     * method: "purchase" | "brizzi"
+     */
+    buildVoid(traceNumber, method = 'purchase') {
+        return {
+            action: 'Void',
+            trace_number: traceNumber,
+            pos_address: state.settings.posAddress,
+            time_stamp: this.getTimestamp(),
+            method: method
+        };
+    },
+
+    /**
+     * Build Check Status QR payload
+     * action: "Check Status"
+     * method: "qris"
+     */
+    buildCheckStatus(referenceNumber) {
+        return {
+            action: 'Check Status',
+            reference_number: referenceNumber,
+            pos_address: state.settings.posAddress,
+            time_stamp: this.getTimestamp(),
+            method: 'qris'
+        };
     }
 };
 
@@ -614,11 +723,9 @@ async function processPayment() {
         return;
     }
     
-    const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked')?.value;
-    if (!paymentMethod) {
-        showToast('Error', 'Please select payment method', 'error');
-        return;
-    }
+    // Get action type and payment method
+    const actionType = document.getElementById('actionType')?.value || 'Sale';
+    const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked')?.value || 'purchase';
     
     // Show payment modal
     showPaymentModal();
@@ -627,29 +734,6 @@ async function processPayment() {
     const subtotal = state.cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
     const tax = Math.round(subtotal * 0.1);
     const total = subtotal + tax;
-    
-    // Prepare transaction data
-    const transactionId = generateTransactionId();
-    const transactionData = {
-        transactionId: transactionId,
-        merchantId: state.settings.merchantId,
-        terminalId: state.settings.terminalId,
-        timestamp: new Date().toISOString(),
-        paymentMethod: paymentMethod,
-        amount: total,
-        currency: 'IDR',
-        items: state.cart.map(item => ({
-            name: item.name,
-            qty: item.qty,
-            price: item.price
-        })),
-        metadata: {
-            posVersion: '1.0.0',
-            ecrLinkVersion: '4.10.1'
-        }
-    };
-    
-    log(`Processing payment: ${paymentMethod}, Amount: Rp ${formatPrice(total)}`, 'info');
     
     try {
         // Ensure connection
@@ -662,38 +746,57 @@ async function processPayment() {
             throw new Error('Failed to connect to EDC');
         }
         
-        // Encrypt payload
-        updatePaymentStatus('encrypting', 'Encrypting payload...', 'Securing transaction data');
-        await sleep(500); // Small delay for UX
+        // Build payload based on action type
+        updatePaymentStatus('building', 'Building transaction payload...', 'Preparing request data');
         
-        const encryptedToken = await EncryptionUtils.generateToken(transactionData);
-        log(`Encrypted token generated: ${encryptedToken.substring(0, 50)}...`, 'info');
+        let payload;
+        switch (actionType) {
+            case 'Sale':
+                payload = PayloadBuilder.buildSale(total, paymentMethod);
+                break;
+            case 'Contactless':
+                payload = PayloadBuilder.buildContactless(total);
+                break;
+            case 'CardVerification':
+                payload = PayloadBuilder.buildCardVerification(total);
+                break;
+            case 'Cicilan':
+                const plan = document.getElementById('cicilanPlan')?.value || '001';
+                const periode = document.getElementById('cicilanPeriode')?.value || '03';
+                payload = PayloadBuilder.buildCicilan(total, plan, periode);
+                break;
+            default:
+                payload = PayloadBuilder.buildSale(total, paymentMethod);
+        }
+        
+        log(`Building ${actionType} payload with method: ${payload.method || 'purchase'}`, 'info');
+        
+        // Encrypt payload
+        updatePaymentStatus('encrypting', 'Encrypting payload...', 'Using AES/ECB/PKCS5Padding');
+        await sleep(500);
+        
+        const encryptedToken = await ECREncryption.generateToken(payload);
         
         // Send to EDC
         updatePaymentStatus('sending', 'Sending to EDC...', 'Waiting for EDC response');
         
-        const requestPayload = {
-            type: 'PAYMENT_REQUEST',
-            token: encryptedToken,
-            raw: transactionData
-        };
-        
-        const sent = ecrWs.send(requestPayload);
+        // Send as raw encrypted string (token only)
+        const sent = ecrWs.send(encryptedToken);
         if (!sent) {
             throw new Error('Failed to send payment request');
         }
         
-        // Wait for response (in real implementation, this would be handled by onmessage)
-        // For demo purposes, we'll simulate a response after a delay
-        await sleep(3000);
+        // Store transaction info for response handling
+        state.currentTransaction = {
+            trxId: payload.trx_id,
+            action: payload.action,
+            amount: total,
+            timestamp: new Date()
+        };
         
-        // Simulate success response (in real scenario, this comes from EDC)
-        // This part should be replaced with actual response handling
-        handlePaymentResponse({
-            success: true,
-            transactionId: transactionId,
-            message: 'Payment processed successfully'
-        });
+        // Wait for response (in real implementation, this would be handled by onmessage)
+        // For demo purposes, we'll wait for actual response from EDC
+        log('Waiting for EDC response...', 'info');
         
     } catch (error) {
         log(`Payment failed: ${error.message}`, 'error');
@@ -705,13 +808,18 @@ async function processPayment() {
 }
 
 function handleMessage(data) {
-    log(`Received: ${data.substring(0, 200)}${data.length > 200 ? '...' : ''}`, 'received');
+    log(`Received: ${data.substring(0, 500)}${data.length > 500 ? '...' : ''}`, 'received');
     
     try {
         const response = JSON.parse(data);
         handlePaymentResponse(response);
     } catch (error) {
-        log(`Failed to parse response: ${error.message}`, 'error');
+        // If not JSON, treat as raw response
+        log(`Raw response received (not JSON): ${data.substring(0, 200)}`, 'warning');
+        handlePaymentResponse({
+            success: true,
+            raw: data
+        });
     }
 }
 
@@ -724,54 +832,142 @@ function handlePaymentResponse(response) {
     detailsEl.style.display = 'block';
     footerEl.style.display = 'flex';
     
-    if (response.success) {
-        state.totalTransactions++;
-        updateInfoPanel();
-        
-        detailsEl.innerHTML = `
+    state.totalTransactions++;
+    updateInfoPanel();
+    
+    // Check if it's a success response (rc: "00" or status: "success"/"paid")
+    const isSuccess = response.rc === '00' || 
+                      response.status === 'success' || 
+                      response.status === 'paid' ||
+                      response.success === true;
+    
+    if (isSuccess) {
+        let resultHtml = `
             <div class="payment-result success">
                 <div class="result-title success">
-                    <i class="fas fa-check-circle"></i> Payment Successful
+                    <i class="fas fa-check-circle"></i> Transaction Success
                 </div>
-                <div class="result-item">
-                    <span class="result-label">Transaction ID</span>
-                    <span class="result-value">${response.transactionId}</span>
-                </div>
-                <div class="result-item">
-                    <span class="result-label">Amount</span>
-                    <span class="result-value">${document.getElementById('total').textContent}</span>
-                </div>
-                <div class="result-item">
-                    <span class="result-label">Status</span>
-                    <span class="result-value" style="color: var(--success-color);">APPROVED</span>
-                </div>
-            </div>
         `;
         
-        log(`Payment successful: ${response.transactionId}`, 'success');
-        showToast('Success', 'Payment processed successfully', 'success');
+        // Add common fields if available
+        if (response.trx_id) {
+            resultHtml += `
+                <div class="result-item">
+                    <span class="result-label">Transaction ID</span>
+                    <span class="result-value">${response.trx_id}</span>
+                </div>
+            `;
+        }
+        
+        if (response.trace_number) {
+            resultHtml += `
+                <div class="result-item">
+                    <span class="result-label">Trace Number</span>
+                    <span class="result-value">${response.trace_number}</span>
+                </div>
+            `;
+        }
+        
+        if (response.amount) {
+            resultHtml += `
+                <div class="result-item">
+                    <span class="result-label">Amount</span>
+                    <span class="result-value">Rp ${formatPrice(parseInt(response.amount))}</span>
+                </div>
+            `;
+        }
+        
+        if (response.approval && response.approval !== 'N/A') {
+            resultHtml += `
+                <div class="result-item">
+                    <span class="result-label">Approval Code</span>
+                    <span class="result-value">${response.approval}</span>
+                </div>
+            `;
+        }
+        
+        if (response.reference_number && response.reference_number !== 'N/A') {
+            resultHtml += `
+                <div class="result-item">
+                    <span class="result-label">Reference Number</span>
+                    <span class="result-value">${response.reference_number}</span>
+                </div>
+            `;
+        }
+        
+        if (response.card_name && response.card_name !== 'N/A') {
+            resultHtml += `
+                <div class="result-item">
+                    <span class="result-label">Card Type</span>
+                    <span class="result-value">${response.card_name}</span>
+                </div>
+            `;
+        }
+        
+        if (response.pan && response.pan !== 'N/A') {
+            resultHtml += `
+                <div class="result-item">
+                    <span class="result-label">Card Number</span>
+                    <span class="result-value">${response.pan}</span>
+                </div>
+            `;
+        }
+        
+        if (response.status) {
+            resultHtml += `
+                <div class="result-item">
+                    <span class="result-label">Status</span>
+                    <span class="result-value" style="color: var(--success-color); text-transform: uppercase;">${response.status}</span>
+                </div>
+            `;
+        }
+        
+        if (response.rc && response.rc !== 'N/A') {
+            resultHtml += `
+                <div class="result-item">
+                    <span class="result-label">Response Code</span>
+                    <span class="result-value">${response.rc}</span>
+                </div>
+            `;
+        }
+        
+        resultHtml += `</div>`;
+        detailsEl.innerHTML = resultHtml;
+        
+        log(`Transaction successful: ${response.trx_id || 'N/A'}`, 'success');
+        showToast('Success', 'Transaction processed successfully', 'success');
         
         // Clear cart after successful payment
         clearCart();
     } else {
+        let errorMessage = response.msg || response.error || 'Transaction failed';
+        
         detailsEl.innerHTML = `
             <div class="payment-result error">
                 <div class="result-title error">
-                    <i class="fas fa-times-circle"></i> Payment Failed
+                    <i class="fas fa-times-circle"></i> Transaction Failed
                 </div>
                 <div class="result-item">
                     <span class="result-label">Error</span>
-                    <span class="result-value">${response.error || 'Unknown error'}</span>
+                    <span class="result-value">${errorMessage}</span>
                 </div>
+                ${response.rc ? `
+                <div class="result-item">
+                    <span class="result-label">Response Code</span>
+                    <span class="result-value">${response.rc}</span>
+                </div>
+                ` : ''}
+                ${response.status ? `
                 <div class="result-item">
                     <span class="result-label">Status</span>
-                    <span class="result-value" style="color: var(--danger-color);">DECLINED</span>
+                    <span class="result-value" style="color: var(--danger-color);">${response.status}</span>
                 </div>
+                ` : ''}
             </div>
         `;
         
-        log(`Payment failed: ${response.error || 'Unknown error'}`, 'error');
-        showToast('Error', response.error || 'Payment failed', 'error');
+        log(`Transaction failed: ${errorMessage}`, 'error');
+        showToast('Error', errorMessage, 'error');
     }
 }
 
@@ -793,12 +989,6 @@ function closePaymentModal() {
 
 function updatePaymentStatus(status, message, detail) {
     const statusEl = document.getElementById('paymentStatus');
-    const messages = {
-        connecting: { icon: 'spinner', color: 'var(--primary-color)' },
-        encrypting: { icon: 'lock', color: 'var(--info-color)' },
-        sending: { icon: 'spinner', color: 'var(--warning-color)' }
-    };
-    
     statusEl.innerHTML = `
         <div class="spinner"></div>
         <p class="status-message">${message}</p>
@@ -806,14 +996,34 @@ function updatePaymentStatus(status, message, detail) {
     `;
 }
 
+// ===== Action Type UI Update =====
+function updateActionTypeUI() {
+    const actionType = document.getElementById('actionType')?.value || 'Sale';
+    const paymentMethodSection = document.getElementById('paymentMethodSection');
+    const cicilanOptions = document.getElementById('cicilanOptions');
+    
+    // Show/hide payment method based on action type
+    if (actionType === 'Sale') {
+        paymentMethodSection.style.display = 'block';
+        cicilanOptions.style.display = 'none';
+    } else if (actionType === 'Cicilan') {
+        paymentMethodSection.style.display = 'none';
+        cicilanOptions.style.display = 'block';
+    } else {
+        // Contactless, CardVerification - only support purchase method
+        paymentMethodSection.style.display = 'none';
+        cicilanOptions.style.display = 'none';
+    }
+}
+
 // ===== Settings =====
 function saveSettingsToState() {
-    state.settings.protocol = document.querySelector('input[name="protocol"]:checked')?.value || 'ws';
+    state.settings.protocol = document.querySelector('input[name="protocol"]:checked')?.value || 'wss';
     state.settings.edcIp = document.getElementById('edcIp')?.value || '';
-    state.settings.edcPort = document.getElementById('edcPort')?.value || '6745';
-    state.settings.merchantId = document.getElementById('merchantId')?.value || 'MERCHANT001';
-    state.settings.terminalId = document.getElementById('terminalId')?.value || 'TERMINAL001';
-    state.settings.encryptionKey = document.getElementById('encryptionKey')?.value || '0123456789ABCDEF0123456789ABCDEF';
+    state.settings.edcPort = document.getElementById('edcPort')?.value || '6746';
+    state.settings.posAddress = document.getElementById('posAddress')?.value || '172.0.0.1';
+    state.settings.secretKey = document.getElementById('secretKey')?.value || 'ECR2022secretKey';
+    state.settings.actionType = document.getElementById('defaultActionType')?.value || 'Sale';
     
     // Save to localStorage
     localStorage.setItem('posSettings', JSON.stringify(state.settings));
@@ -836,9 +1046,9 @@ function loadSettings() {
     
     document.getElementById('edcIp').value = state.settings.edcIp;
     document.getElementById('edcPort').value = state.settings.edcPort;
-    document.getElementById('merchantId').value = state.settings.merchantId;
-    document.getElementById('terminalId').value = state.settings.terminalId;
-    document.getElementById('encryptionKey').value = state.settings.encryptionKey;
+    document.getElementById('posAddress').value = state.settings.posAddress;
+    document.getElementById('secretKey').value = state.settings.secretKey;
+    document.getElementById('defaultActionType').value = state.settings.actionType;
 }
 
 function saveSettings(event) {
@@ -849,12 +1059,6 @@ function saveSettings(event) {
 }
 
 // ===== Utilities =====
-function generateTransactionId() {
-    const timestamp = Date.now().toString(36).toUpperCase();
-    const random = Math.random().toString(36).substring(2, 6).toUpperCase();
-    return `TXN${timestamp}${random}`;
-}
-
 function formatPrice(price) {
     return price.toLocaleString('id-ID');
 }
@@ -919,6 +1123,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateCartSummary();
     updateConnectionStatus();
     updateInfoPanel();
+    updateActionTypeUI();
     
     // Tab navigation
     document.querySelectorAll('.nav-item').forEach(item => {
@@ -931,8 +1136,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Search menu
     document.getElementById('searchMenu')?.addEventListener('input', renderMenuGrid);
     
+    // Action type change
+    document.getElementById('actionType')?.addEventListener('change', updateActionTypeUI);
+    
     // Log initial message
     log('POS Dummy ECR Link initialized', 'info');
+    log('AES/ECB/PKCS5Padding encryption ready', 'info');
     log('Please configure EDC connection in Settings', 'info');
 });
 

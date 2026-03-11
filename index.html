@@ -109,36 +109,65 @@
                         </div>
 
                         <div class="payment-section">
-                            <h3>Metode Pembayaran</h3>
-                            <div class="payment-methods">
-                                <label class="payment-method">
-                                    <input type="radio" name="paymentMethod" value="CREDIT_CARD" checked>
-                                    <div class="payment-card">
-                                        <i class="fas fa-credit-card"></i>
-                                        <span>Kartu Kredit/Debit</span>
+                            <h3>Tipe Transaksi</h3>
+                            <div class="form-group" style="margin-bottom: 1rem;">
+                                <select id="actionType" class="form-select" onchange="updateActionTypeUI()">
+                                    <option value="Sale">Sale (Purchase / Brizzi / QRIS)</option>
+                                    <option value="Contactless">Contactless (Tap)</option>
+                                    <option value="CardVerification">Card Verification</option>
+                                    <option value="Cicilan">Cicilan (Installment)</option>
+                                </select>
+                            </div>
+                            
+                            <div id="paymentMethodSection">
+                                <h3>Metode Pembayaran</h3>
+                                <div class="payment-methods">
+                                    <label class="payment-method">
+                                        <input type="radio" name="paymentMethod" value="purchase" checked>
+                                        <div class="payment-card">
+                                            <i class="fas fa-credit-card"></i>
+                                            <span>Purchase (Kartu)</span>
+                                        </div>
+                                    </label>
+                                    <label class="payment-method">
+                                        <input type="radio" name="paymentMethod" value="brizzi">
+                                        <div class="payment-card">
+                                            <i class="fas fa-wallet"></i>
+                                            <span>Brizzi</span>
+                                        </div>
+                                    </label>
+                                    <label class="payment-method">
+                                        <input type="radio" name="paymentMethod" value="qris">
+                                        <div class="payment-card">
+                                            <i class="fas fa-qrcode"></i>
+                                            <span>QRIS</span>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div id="cicilanOptions" style="display: none;">
+                                <h3>Opsi Cicilan</h3>
+                                <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem;">
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label>Plan</label>
+                                        <select id="cicilanPlan" class="form-select">
+                                            <option value="001">Plan 001</option>
+                                            <option value="002">Plan 002</option>
+                                            <option value="003">Plan 003</option>
+                                        </select>
                                     </div>
-                                </label>
-                                <label class="payment-method">
-                                    <input type="radio" name="paymentMethod" value="QRIS">
-                                    <div class="payment-card">
-                                        <i class="fas fa-qrcode"></i>
-                                        <span>QRIS</span>
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label>Periode</label>
+                                        <select id="cicilanPeriode" class="form-select">
+                                            <option value="03">3 Bulan</option>
+                                            <option value="06">6 Bulan</option>
+                                            <option value="09">9 Bulan</option>
+                                            <option value="12">12 Bulan</option>
+                                            <option value="24">24 Bulan</option>
+                                        </select>
                                     </div>
-                                </label>
-                                <label class="payment-method">
-                                    <input type="radio" name="paymentMethod" value="QRIS_TAP">
-                                    <div class="payment-card">
-                                        <i class="fas fa-mobile-alt"></i>
-                                        <span>QRIS TAP</span>
-                                    </div>
-                                </label>
-                                <label class="payment-method">
-                                    <input type="radio" name="paymentMethod" value="ALIPAY">
-                                    <div class="payment-card">
-                                        <i class="fab fa-alipay"></i>
-                                        <span>Alipay</span>
-                                    </div>
-                                </label>
+                                </div>
                             </div>
                             
                             <button class="btn btn-primary btn-large btn-pay" id="payBtn" onclick="processPayment()" disabled>
@@ -210,24 +239,31 @@
                                 
                                 <div class="form-group">
                                     <label for="edcPort">Port</label>
-                                    <input type="number" id="edcPort" value="6745" placeholder="6745 untuk WS, 6746 untuk WSS">
-                                    <small class="form-hint">Default: 6745 (WS), 6746 (WSS)</small>
+                                    <input type="number" id="edcPort" value="6746" placeholder="6745 untuk WS, 6746 untuk WSS">
+                                    <small class="form-hint">Default: 6745 (WS), 6746 (WSS) - Sesuaikan dengan ECR Link</small>
                                 </div>
                                 
                                 <div class="form-group">
-                                    <label for="merchantId">Merchant ID</label>
-                                    <input type="text" id="merchantId" placeholder="MERCHANT001">
+                                    <label for="posAddress">POS Address (IP POS)</label>
+                                    <input type="text" id="posAddress" value="172.0.0.1" placeholder="172.0.0.1">
+                                    <small class="form-hint">IP Address POS yang dikirim ke EDC (default: 172.0.0.1)</small>
                                 </div>
                                 
                                 <div class="form-group">
-                                    <label for="terminalId">Terminal ID</label>
-                                    <input type="text" id="terminalId" placeholder="TERMINAL001">
+                                    <label for="secretKey">Secret Key (AES Encryption)</label>
+                                    <input type="text" id="secretKey" value="ECR2022secretKey" placeholder="ECR2022secretKey">
+                                    <small class="form-hint">Secret key untuk AES/ECB/PKCS5Padding (default: ECR2022secretKey)</small>
                                 </div>
                                 
                                 <div class="form-group">
-                                    <label for="encryptionKey">Encryption Key (Hex)</label>
-                                    <input type="text" id="encryptionKey" placeholder="0123456789ABCDEF0123456789ABCDEF">
-                                    <small class="form-hint">Kunci enkripsi untuk payload (32 karakter hex untuk AES-256)</small>
+                                    <label for="defaultActionType">Default Action Type</label>
+                                    <select id="defaultActionType">
+                                        <option value="Sale">Sale</option>
+                                        <option value="Contactless">Contactless</option>
+                                        <option value="CardVerification">Card Verification</option>
+                                        <option value="Cicilan">Cicilan</option>
+                                    </select>
+                                    <small class="form-hint">Tipe transaksi default saat pembayaran</small>
                                 </div>
                                 
                                 <div class="form-actions">
