@@ -24,13 +24,16 @@ fi
 echo "Script berjalan sebagai root - OK"
 echo ""
 
-# Get domain from user (default: ecrlink.pcsindonesia.com)
-echo "Masukkan domain EDC (default: ecrlink.pcsindonesia.com):"
-echo "Format: subdomain.pcsindonesia.com (contoh: store001.pcsindonesia.com)"
-read -p "Domain: " EDC_DOMAIN
-if [ -z "$EDC_DOMAIN" ]; then
-    EDC_DOMAIN="ecrlink.pcsindonesia.com"
+# Get subdomain from user
+echo "Masukkan subdomain EDC (contoh: store001, edc-jkt-001):"
+read -p "Subdomain: " EDC_SUBDOMAIN
+if [ -z "$EDC_SUBDOMAIN" ]; then
+    echo "ERROR: Subdomain tidak boleh kosong!"
+    exit 1
 fi
+
+# Construct full domain
+EDC_DOMAIN="${EDC_SUBDOMAIN}.pcsindonesia.com"
 
 # Get IP address from user
 read -p "Masukkan IP address EDC di toko ini (contoh: 192.168.0.105): " EDC_IP

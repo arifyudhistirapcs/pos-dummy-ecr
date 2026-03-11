@@ -26,11 +26,17 @@ if %errorLevel% neq 0 (
 echo Script berjalan sebagai Administrator - OK
 echo.
 
-REM Get domain from user (default: ecrlink.pcsindonesia.com)
-echo Masukkan domain EDC (default: ecrlink.pcsindonesia.com):
-echo Format: subdomain.pcsindonesia.com (contoh: store001.pcsindonesia.com)
-set /p EDC_DOMAIN="Domain: "
-if "%EDC_DOMAIN%"=="" set EDC_DOMAIN=ecrlink.pcsindonesia.com
+REM Get subdomain from user
+echo Masukkan subdomain EDC (contoh: store001, edc-jkt-001):
+set /p EDC_SUBDOMAIN="Subdomain: "
+if "%EDC_SUBDOMAIN%"=="" (
+    echo ERROR: Subdomain tidak boleh kosong!
+    pause
+    exit /b 1
+)
+
+REM Construct full domain
+set EDC_DOMAIN=%EDC_SUBDOMAIN%.pcsindonesia.com
 
 REM Get IP address from user
 set /p EDC_IP="Masukkan IP address EDC di toko ini (contoh: 192.168.0.105): "
