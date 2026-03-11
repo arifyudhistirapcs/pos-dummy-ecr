@@ -257,9 +257,12 @@
                                 </div>
                                 
                                 <div class="form-group">
-                                    <label for="edcDomain">Domain/Subdomain EDC</label>
-                                    <input type="text" id="edcDomain" placeholder="edc-001.pcsindonesia.com" required>
-                                    <small class="form-hint">Format: edc-[nomor-toko].pcsindonesia.com (contoh: edc-001.pcsindonesia.com)</small>
+                                    <label for="edcSubdomain">Subdomain EDC</label>
+                                    <div class="input-group" style="display: flex; align-items: stretch;">
+                                        <input type="text" id="edcSubdomain" placeholder="edc-001" required style="border-radius: var(--border-radius) 0 0 var(--border-radius); border-right: none;">
+                                        <span class="input-suffix" style="background: var(--gray-100); border: 1px solid var(--gray-300); border-left: none; padding: 0.625rem 0.875rem; border-radius: 0 var(--border-radius) var(--border-radius) 0; color: var(--gray-600); font-size: 0.875rem; white-space: nowrap;">.pcsindonesia.com</span>
+                                    </div>
+                                    <small class="form-hint">Format: edc-[nomor-toko] (contoh: edc-001, edc-002, dst)</small>
                                 </div>
                                 
                                 <div class="form-group">

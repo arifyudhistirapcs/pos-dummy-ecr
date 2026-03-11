@@ -22,7 +22,7 @@ const state = {
     // Settings
     settings: {
         protocol: 'wss',
-        edcDomain: 'edc-001.pcsindonesia.com',  // Default domain format
+        edcSubdomain: '',  // User inputs only subdomain (e.g., "edc-001")
         edcPort: '6746',
         posAddress: '172.0.0.1',
         secretKey: 'ECR2022secretKey',
@@ -522,10 +522,10 @@ function updateConnectionStatus() {
 function updateInfoPanel() {
     document.getElementById('infoStatus').textContent = state.isConnected ? 'Connected' : 'Disconnected';
     
-    // Show domain in info URL if using domain mode
+    // Show domain in info URL
     let displayUrl = state.connectionUrl || '-';
-    if (state.settings.edcDomain && !state.isConnected) {
-        displayUrl = `${state.settings.protocol}://${state.settings.edcDomain}:${state.settings.edcPort}`;
+    if (state.settings.edcSubdomain && !state.isConnected) {
+        displayUrl = `${state.settings.protocol}://${state.settings.edcSubdomain}.pcsindonesia.com:${state.settings.edcPort}`;
     }
     document.getElementById('infoUrl').textContent = displayUrl;
     
@@ -542,13 +542,16 @@ function toggleConnection() {
 }
 
 async function connectToEDC() {
-    const domain = state.settings.edcDomain;
+    const subdomain = state.settings.edcSubdomain;
     
-    if (!domain) {
-        showToast('Error', 'Please configure EDC Domain in Settings', 'error');
+    if (!subdomain) {
+        showToast('Error', 'Please configure EDC Subdomain in Settings', 'error');
         switchTab('settings');
         return;
     }
+    
+    // Construct full domain
+    const domain = `${subdomain}.pcsindonesia.com`;
     
     const protocol = state.settings.protocol;
     const port = state.settings.edcPort || (protocol === 'wss' ? '6746' : '6745');
@@ -565,11 +568,7 @@ async function connectToEDC() {
     log('========================================', 'info');
     
     // Check if using domain mode (recommended)
-    if (domain.includes('pcsindonesia.com')) {
-        log('✅ Using domain mode (Sectigo SSL) - Certificate should be trusted', 'success');
-    } else {
-        log('⚠️ Using IP mode - May require certificate installation', 'warning');
-    }
+    log('✅ Using domain mode (Sectigo SSL) - Certificate should be trusted', 'success');
     
     try {
         await ecrWs.connect(url);
@@ -1116,7 +1115,7 @@ function updateActionTypeUI() {
 // ===== Settings =====
 function saveSettingsToState() {
     state.settings.protocol = document.querySelector('input[name="protocol"]:checked')?.value || 'wss';
-    state.settings.edcDomain = document.getElementById('edcDomain')?.value || 'edc-001.pcsindonesia.com';
+    state.settings.edcSubdomain = document.getElementById('edcSubdomain')?.value || '';
     state.settings.edcPort = document.getElementById('edcPort')?.value || '6746';
     state.settings.posAddress = document.getElementById('posAddress')?.value || '172.0.0.1';
     state.settings.secretKey = document.getElementById('secretKey')?.value || 'ECR2022secretKey';
@@ -1141,7 +1140,7 @@ function loadSettings() {
     const protocolRadio = document.querySelector(`input[name="protocol"][value="${state.settings.protocol}"]`);
     if (protocolRadio) protocolRadio.checked = true;
     
-    document.getElementById('edcDomain').value = state.settings.edcDomain || 'edc-001.pcsindonesia.com';
+    document.getElementById('edcSubdomain').value = state.settings.edcSubdomain || '';
     document.getElementById('edcPort').value = state.settings.edcPort;
     document.getElementById('posAddress').value = state.settings.posAddress;
     document.getElementById('secretKey').value = state.settings.secretKey;
@@ -1239,7 +1238,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Log initial message
     log('POS Dummy ECR Link initialized', 'info');
     log('AES/ECB/PKCS5Padding encryption ready', 'info');
-    log('Please configure EDC connection in Settings', 'info');
+    log('Please configure EDC subdomain in Settings', 'info');
 });
 
 // Handle protocol change to update default port
@@ -1259,13 +1258,8 @@ function showHostsSetup() {
     document.getElementById('hostsModal').classList.add('active');
     
     // Pre-fill with current settings if available
-    const domain = state.settings.edcDomain || '';
-    
-    if (domain && domain.includes('.pcsindonesia.com')) {
-        document.getElementById('hostsDomainInput').value = domain.replace('.pcsindonesia.com', '');
-    } else {
-        document.getElementById('hostsDomainInput').value = '';
-    }
+    const subdomain = state.settings.edcSubdomain || '';
+    document.getElementById('hostsDomainInput').value = subdomain;
     document.getElementById('hostsIpInput').value = '';
     
     updateHostsExample();
