@@ -211,33 +211,31 @@
             <!-- Tab: Settings -->
             <div class="tab-content" id="tab-settings">
                 <div class="settings-grid">
-                    <div class="card" style="border: 2px solid var(--warning-color);">
-                        <div class="card-header" style="background: var(--warning-light);">
-                            <h2>⚠️ Konfigurasi EDC Connection</h2>
+                    <div class="card" style="border: 2px solid var(--success-color);">
+                        <div class="card-header" style="background: var(--success-light);">
+                            <h2>✅ Konfigurasi EDC Connection (Domain)</h2>
                         </div>
                         <div class="card-body">
-                            <!-- SSL Warning Banner -->
-                            <div class="alert alert-warning" style="background: #fffbeb; border: 1px solid #f59e0b; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
+                            <!-- Domain Mode Banner -->
+                            <div class="alert alert-success" style="background: #f0fdf4; border: 1px solid #22c55e; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
                                 <div style="display: flex; align-items: flex-start; gap: 0.75rem;">
-                                    <i class="fas fa-exclamation-triangle" style="color: #f59e0b; font-size: 1.25rem; margin-top: 0.125rem;"></i>
+                                    <i class="fas fa-check-circle" style="color: #22c55e; font-size: 1.25rem; margin-top: 0.125rem;"></i>
                                     <div>
-                                        <strong style="color: #92400e;">PENTING: SSL Certificate Pinning</strong>
-                                        <p style="color: #78350f; margin: 0.5rem 0 0 0; font-size: 0.875rem;">
-                                            EDC menggunakan <strong>self-signed certificate</strong> dengan public key specific. 
-                                            WSS (port 6746) mungkin tidak bisa connect langsung dari browser.
+                                        <strong style="color: #166534;">MODE DOMAIN (Recommended)</strong>
+                                        <p style="color: #14532d; margin: 0.5rem 0 0 0; font-size: 0.875rem;">
+                                            Gunakan <strong>subdomain *.pcsindonesia.com</strong> dengan sertifikat Sectigo wildcard.
+                                            Setiap toko menggunakan subdomain unik yang diarahkan ke IP EDC via hosts file.
                                         </p>
                                         <div style="margin-top: 0.75rem; padding: 0.75rem; background: white; border-radius: 6px;">
-                                            <strong style="color: #166534;">✅ Solusi Cepat untuk Testing:</strong>
-                                            <ol style="margin: 0.5rem 0 0 0; padding-left: 1.25rem; color: #14532d; font-size: 0.8125rem;">
-                                                <li>Jalankan aplikasi dengan <strong>Local Server</strong>: <code>python3 -m http.server 3000</code></li>
-                                                <li>Buka <strong>http://localhost:3000</strong> (bukan https)</li>
-                                                <li>Ganti Protocol ke <strong>WS</strong> (bukan WSS)</li>
-                                                <li>Ganti Port ke <strong>6745</strong></li>
-                                                <li>Klik Connect</li>
-                                            </ol>
+                                            <strong style="color: #166534;">Contoh Setup:</strong>
+                                            <ul style="margin: 0.5rem 0 0 0; padding-left: 1.25rem; color: #14532d; font-size: 0.8125rem;">
+                                                <li>Toko 001: <code>edc-001.pcsindonesia.com</code> → 192.168.1.10</li>
+                                                <li>Toko 002: <code>edc-002.pcsindonesia.com</code> → 192.168.1.20</li>
+                                                <li>Semua subdomain trusted oleh browser (Sectigo SSL)</li>
+                                            </ul>
                                         </div>
                                         <p style="margin: 0.5rem 0 0 0; font-size: 0.75rem;">
-                                            <a href="SSL_PINNING.md" target="_blank" style="color: #2563eb;">📖 Baca detail SSL Pinning & solusi lainnya →</a>
+                                            <a href="#" onclick="showHostsSetup(); return false;" style="color: #2563eb;">📖 Panduan Setup DNS Hosts →</a>
                                         </p>
                                     </div>
                                 </div>
@@ -259,9 +257,20 @@
                                 </div>
                                 
                                 <div class="form-group">
-                                    <label for="edcIp">IP Address EDC</label>
-                                    <input type="text" id="edcIp" placeholder="192.168.1.100" required>
-                                    <small class="form-hint">Masukkan IP address yang ditampilkan di aplikasi ECR Link pada EDC</small>
+                                    <label for="edcDomain">Domain/Subdomain EDC</label>
+                                    <input type="text" id="edcDomain" placeholder="edc-001.pcsindonesia.com" required>
+                                    <small class="form-hint">Format: edc-[nomor-toko].pcsindonesia.com (contoh: edc-001.pcsindonesia.com)</small>
+                                </div>
+                                
+                                <div class="form-group" style="background: #f0f9ff; padding: 1rem; border-radius: 8px; border: 1px solid #0ea5e9;">
+                                    <label style="color: #0369a1; font-weight: 600;">
+                                        <i class="fas fa-map-marker-alt"></i> IP EDC (Untuk Setup Hosts)
+                                    </label>
+                                    <input type="text" id="edcIpForHosts" placeholder="192.168.1.100" readonly style="background: #f1f5f9;">
+                                    <small class="form-hint" style="color: #0ea5e9;">
+                                        IP ini digunakan untuk mengedit file hosts Windows. 
+                                        <a href="#" onclick="showHostsSetup(); return false;" style="color: #0369a1; text-decoration: underline;">Lihat panduan →</a>
+                                    </small>
                                 </div>
                                 
                                 <div class="form-group">
@@ -406,7 +415,113 @@
         </div>
     </div>
 
-    <!-- Certificate Setup Modal -->
+    <!-- DNS Hosts Setup Modal -->
+    <div class="modal" id="hostsModal">
+        <div class="modal-overlay" onclick="closeHostsModal()"></div>
+        <div class="modal-content modal-large" style="max-width: 700px;">
+            <div class="modal-header">
+                <h3>🌐 Setup DNS Hosts (Windows)</h3>
+                <button class="btn-close" onclick="closeHostsModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="cert-setup-container">
+                    <!-- Info Box -->
+                    <div style="background: #f0fdf4; border: 1px solid #22c55e; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
+                        <strong style="color: #166534;">💡 Kenapa perlu setup Hosts?</strong>
+                        <p style="margin: 0.5rem 0 0 0; font-size: 0.875rem; color: #14532d;">
+                            Domain <code>edc-XXX.pcsindonesia.com</code> perlu diarahkan ke IP EDC lokal toko Anda. 
+                            Karena ini network internal, kita menggunakan file <strong>hosts</strong> Windows.
+                        </p>
+                    </div>
+
+                    <!-- Step 1 -->
+                    <div class="cert-step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h4>Cek IP EDC</h4>
+                            <p>Buka aplikasi <strong>ECR Link</strong> di EDC, catat IP address yang ditampilkan.</p>
+                            <div class="step-note">
+                                <i class="fas fa-info-circle"></i>
+                                Contoh IP: <code>192.168.1.100</code> atau <code>10.0.0.50</code>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 2 -->
+                    <div class="cert-step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h4>Buka File Hosts</h4>
+                            <p>Tekan <strong>Windows + R</strong>, ketik:</p>
+                            <div style="background: #1f2937; color: #10b981; padding: 0.75rem; border-radius: 6px; font-family: monospace; margin: 0.5rem 0;">
+                                notepad C:\Windows\System32\drivers\etc\hosts
+                            </div>
+                            <div class="step-note">
+                                <i class="fas fa-exclamation-triangle" style="color: #f59e0b;"></i>
+                                Jika Notepad tidak bisa save, buka Notepad sebagai <strong>Administrator</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 3 -->
+                    <div class="cert-step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h4>Tambahkan Entry</h4>
+                            <p>Tambahkan baris berikut di bagian bawah file hosts:</p>
+                            <div style="background: #1f2937; color: #e5e7eb; padding: 0.75rem; border-radius: 6px; font-family: monospace; margin: 0.5rem 0; font-size: 0.8125rem;">
+                                # EDC Config<br>
+                                <span id="hostsEntryExample">192.168.1.100 edc-001.pcsindonesia.com</span>
+                            </div>
+                            <div style="margin-top: 0.75rem;">
+                                <label style="font-size: 0.875rem; font-weight: 500;">IP EDC Toko Anda:</label>
+                                <input type="text" id="hostsIpInput" placeholder="192.168.1.100" style="margin-top: 0.25rem;" oninput="updateHostsExample()">
+                            </div>
+                            <div style="margin-top: 0.5rem;">
+                                <label style="font-size: 0.875rem; font-weight: 500;">Subdomain:</label>
+                                <input type="text" id="hostsDomainInput" placeholder="edc-001" style="margin-top: 0.25rem;" oninput="updateHostsExample()">
+                            </div>
+                            <button class="btn btn-primary" style="margin-top: 0.75rem;" onclick="copyHostsEntry()">
+                                <i class="fas fa-copy"></i> Copy Entry
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Step 4 -->
+                    <div class="cert-step">
+                        <div class="step-number">4</div>
+                        <div class="step-content">
+                            <h4>Save & Test</h4>
+                            <ol style="font-size: 0.875rem; color: var(--gray-700); line-height: 1.8; margin: 0;">
+                                <li>Save file hosts (Ctrl + S)</li>
+                                <li>Buka <strong>Command Prompt</strong> sebagai Administrator</li>
+                                <li>Ketik: <code>ipconfig /flushdns</code></li>
+                                <li>Restart Google Chrome</li>
+                                <li>Test ping: <code>ping edc-001.pcsindonesia.com</code></li>
+                            </ol>
+                        </div>
+                    </div>
+
+                    <!-- Help Box -->
+                    <div class="cert-help-box" style="background: #fef3c7; border-color: #f59e0b;">
+                        <h5 style="color: #92400e;"><i class="fas fa-lightbulb"></i> Tips</h5>
+                        <ul style="color: #78350f;">
+                            <li>Pastikan Notepad dijalankan sebagai <strong>Administrator</strong></li>
+                            <li>Jika <code>ipconfig /flushdns</code> tidak work, restart komputer</li>
+                            <li>Format: <code>IP_ADDRESS DOMAIN</code> (pisah dengan spasi/tab)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeHostsModal()">Tutup</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Certificate Setup Modal (Backup - tetap ada untuk referensi) -->
     <div class="modal" id="certificateModal">
         <div class="modal-overlay" onclick="closeCertificateModal()"></div>
         <div class="modal-content modal-large" style="max-width: 700px;">

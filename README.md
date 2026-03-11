@@ -161,62 +161,90 @@ pos-dummy-ecr-link/
 └── SSL_PINNING.md          # Dokumentasi SSL Pinning
 ```
 
-## Deployment Multi-Toko (Production)
+## 🚀 Deployment Multi-Toko (Production)
 
-Untuk deployment ke **banyak toko** dengan **HTTPS domain**:
+### Arsitektur: Domain-Based dengan Wildcard SSL
 
-### Solusi: Install CA Certificate + GitHub Pages
+**Solusi Terbaik untuk Production HTTPS:**
 
-**Arsitektur:**
 ```
-┌─────────────────┐     ┌──────────────┐     ┌─────────────┐
-│ POS Dummy       │────→│ GitHub Pages │────→│ EDC         │
-│ (HTTPS)         │     │ (HTTPS)      │     │ (WSS)       │
-│ + CA Cert       │     │              │     │ Self-signed │
-└─────────────────┘     └──────────────┘     └─────────────┘
+┌─────────────────┐      WSS (Sectigo SSL)      ┌─────────────┐
+│ POS Dummy       │────────────────────────────→│ EDC         │
+│ (Browser)       │  edc-XXX.pcsindonesia.com   │ (IP Lokal)  │
+└─────────────────┘                             └─────────────┘
+       │
+       │ DNS Resolution (Hosts File Windows)
+       ↓
+┌────────────────────────────────────────────────────────────┐
+│ C:\Windows\System32\drivers\etc\hosts                       │
+│ 192.168.1.10    edc-001.pcsindonesia.com   ← Toko 001      │
+│ 192.168.1.20    edc-002.pcsindonesia.com   ← Toko 002      │
+│ 192.168.2.10    edc-003.pcsindonesia.com   ← Toko 003      │
+└────────────────────────────────────────────────────────────┘
 ```
 
-### Setup per Toko (Untuk Staff Toko)
-
-Lihat **[SOP_STAFF_TOKO.md](SOP_STAFF_TOKO.md)** untuk panduan lengkap.
-
-**Ringkasan:**
-1. Buka POS Dummy: `https://arifyudhistirapcs.github.io/pos-dummy-ecr/`
-2. Klik **"Setup Sertifikat (WSS)"** di menu Pengaturan
-3. Download dan install sertifikat CA ke Windows
-4. Setting IP EDC toko
-5. Test koneksi
-
-### Video Tutorial (Coming Soon)
-
-- Install CA Certificate di Windows
-- Setting POS Dummy
-- Test transaksi
+**Keuntungan:**
+- ✅ SSL Certificate trusted (Sectigo wildcard)
+- ✅ Tidak perlu install CA certificate manual
+- ✅ WSS langsung jalan tanpa warning browser
+- ✅ 1 URL untuk semua toko
+- ✅ Staff toko setup mandiri
 
 ---
 
-## Menjalankan Aplikasi
+## 📋 Setup per Toko
 
-### Opsi 1: GitHub Pages (Recommended untuk Production)
+### Lihat Dokumentasi Lengkap:
 
-Akses: `https://arifyudhistirapcs.github.io/pos-dummy-ecr/`
+1. **[SOP_DEPLOYMENT_DOMAIN.md](SOP_DEPLOYMENT_DOMAIN.md)** - Panduan deployment untuk Tim IT
+2. **[SOP_STAFF_TOKO.md](SOP_STAFF_TOKO.md)** - Panduan untuk staff toko (mode IP, backup)
+3. **[SSL_PINNING.md](SSL_PINNING.md)** - Dokumentasi teknis SSL
+
+### Ringkasan Setup (Staff Toko):
+
+**Step 1: Edit Hosts File (Windows)**
+```
+1. Tekan Windows + R
+2. Ketik: notepad C:\Windows\System32\drivers\etc\hosts
+3. Tambahkan baris: [IP_EDC] [DOMAIN]
+   Contoh: 192.168.1.10 edc-001.pcsindonesia.com
+4. Save (Run as Administrator)
+5. Flush DNS: ipconfig /flushdns
+```
+
+**Step 2: Setting POS Dummy**
+```
+1. Buka: https://arifyudhistirapcs.github.io/pos-dummy-ecr/
+2. Klik Pengaturan
+3. Domain: edc-001.pcsindonesia.com (sesuaikan)
+4. Protocol: WSS
+5. Port: 6746
+6. Klik "Test Connection"
+```
+
+---
+
+## 🌐 Akses Aplikasi
+
+### Production (HTTPS):
+```
+https://arifyudhistirapcs.github.io/pos-dummy-ecr/
+```
 
 **Requirement:**
-- Install CA Certificate (untuk WSS)
-- Lihat [SOP_STAFF_TOKO.md](SOP_STAFF_TOKO.md)
+- Setup hosts file dengan domain EDC
+- Wildcard SSL certificate aktif di EDC
 
-### Opsi 2: Local Server (Testing)
-
+### Testing (Local):
 ```bash
 # Clone repository
 git clone https://github.com/arifyudhistirapcs/pos-dummy-ecr.git
 cd pos-dummy-ecr
 
-# Jalankan dengan Python
+# Jalankan local server
 python3 -m http.server 3000
 
-# Buka browser
-http://localhost:3000
+# Buka http://localhost:3000
 ```
 
 ## Response Fields

@@ -22,7 +22,8 @@ const state = {
     // Settings
     settings: {
         protocol: 'wss',
-        edcIp: '',
+        edcDomain: 'edc-001.pcsindonesia.com',  // Default domain format
+        edcIp: '',  // For hosts file reference
         edcPort: '6746',
         posAddress: '172.0.0.1',
         secretKey: 'ECR2022secretKey',
@@ -521,7 +522,14 @@ function updateConnectionStatus() {
 
 function updateInfoPanel() {
     document.getElementById('infoStatus').textContent = state.isConnected ? 'Connected' : 'Disconnected';
-    document.getElementById('infoUrl').textContent = state.connectionUrl || '-';
+    
+    // Show domain in info URL if using domain mode
+    let displayUrl = state.connectionUrl || '-';
+    if (state.settings.edcDomain && !state.isConnected) {
+        displayUrl = `${state.settings.protocol}://${state.settings.edcDomain}:${state.settings.edcPort}`;
+    }
+    document.getElementById('infoUrl').textContent = displayUrl;
+    
     document.getElementById('infoLastConnected').textContent = state.lastConnected ? state.lastConnected.toLocaleString('id-ID') : '-';
     document.getElementById('infoTotalTrans').textContent = state.totalTransactions;
 }
@@ -535,24 +543,34 @@ function toggleConnection() {
 }
 
 async function connectToEDC() {
-    if (!state.settings.edcIp) {
-        showToast('Error', 'Please configure EDC IP address in Settings', 'error');
+    const domain = state.settings.edcDomain;
+    
+    if (!domain) {
+        showToast('Error', 'Please configure EDC Domain in Settings', 'error');
         switchTab('settings');
         return;
     }
     
     const protocol = state.settings.protocol;
     const port = state.settings.edcPort || (protocol === 'wss' ? '6746' : '6745');
-    const url = `${protocol}://${state.settings.edcIp}:${port}`;
+    const url = `${protocol}://${domain}:${port}`;
     
     state.connectionUrl = url;
     
     log('========================================', 'info');
     log(`🚀 Starting connection attempt`, 'info');
     log(`📡 Protocol: ${protocol.toUpperCase()}`, 'info');
-    log(`🎯 Target: ${state.settings.edcIp}:${port}`, 'info');
+    log(`🌐 Domain: ${domain}`, 'info');
+    log(`🔌 Port: ${port}`, 'info');
     log(`🔗 Full URL: ${url}`, 'info');
     log('========================================', 'info');
+    
+    // Check if using domain mode (recommended)
+    if (domain.includes('pcsindonesia.com')) {
+        log('✅ Using domain mode (Sectigo SSL) - Certificate should be trusted', 'success');
+    } else {
+        log('⚠️ Using IP mode - May require certificate installation', 'warning');
+    }
     
     try {
         await ecrWs.connect(url);
@@ -1099,7 +1117,8 @@ function updateActionTypeUI() {
 // ===== Settings =====
 function saveSettingsToState() {
     state.settings.protocol = document.querySelector('input[name="protocol"]:checked')?.value || 'wss';
-    state.settings.edcIp = document.getElementById('edcIp')?.value || '';
+    state.settings.edcDomain = document.getElementById('edcDomain')?.value || 'edc-001.pcsindonesia.com';
+    state.settings.edcIp = document.getElementById('edcIpForHosts')?.value || '';
     state.settings.edcPort = document.getElementById('edcPort')?.value || '6746';
     state.settings.posAddress = document.getElementById('posAddress')?.value || '172.0.0.1';
     state.settings.secretKey = document.getElementById('secretKey')?.value || 'ECR2022secretKey';
@@ -1124,7 +1143,8 @@ function loadSettings() {
     const protocolRadio = document.querySelector(`input[name="protocol"][value="${state.settings.protocol}"]`);
     if (protocolRadio) protocolRadio.checked = true;
     
-    document.getElementById('edcIp').value = state.settings.edcIp;
+    document.getElementById('edcDomain').value = state.settings.edcDomain || 'edc-001.pcsindonesia.com';
+    document.getElementById('edcIpForHosts').value = state.settings.edcIp || '';
     document.getElementById('edcPort').value = state.settings.edcPort;
     document.getElementById('posAddress').value = state.settings.posAddress;
     document.getElementById('secretKey').value = state.settings.secretKey;
@@ -1236,6 +1256,48 @@ document.querySelectorAll('input[name="protocol"]').forEach(radio => {
         }
     });
 });
+
+// ===== DNS Hosts Setup Functions =====
+function showHostsSetup() {
+    document.getElementById('hostsModal').classList.add('active');
+    
+    // Pre-fill with current settings if available
+    const domain = state.settings.edcDomain || 'edc-001.pcsindonesia.com';
+    const ip = state.settings.edcIp || '';
+    
+    document.getElementById('hostsDomainInput').value = domain.replace('.pcsindonesia.com', '');
+    document.getElementById('hostsIpInput').value = ip;
+    
+    updateHostsExample();
+    log('Opened DNS Hosts Setup dialog', 'info');
+}
+
+function closeHostsModal() {
+    document.getElementById('hostsModal').classList.remove('active');
+}
+
+function updateHostsExample() {
+    const ip = document.getElementById('hostsIpInput').value || '192.168.1.100';
+    const subdomain = document.getElementById('hostsDomainInput').value || 'edc-001';
+    const entry = `${ip} ${subdomain}.pcsindonesia.com`;
+    document.getElementById('hostsEntryExample').textContent = entry;
+}
+
+function copyHostsEntry() {
+    const entry = document.getElementById('hostsEntryExample').textContent;
+    navigator.clipboard.writeText(entry).then(() => {
+        showToast('Copied', 'Hosts entry copied to clipboard', 'success');
+    }).catch(() => {
+        // Fallback
+        const textArea = document.createElement('textarea');
+        textArea.value = entry;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        showToast('Copied', 'Hosts entry copied to clipboard', 'success');
+    });
+}
 
 // ===== Certificate Setup Functions =====
 function showCertificateSetup() {
@@ -1360,6 +1422,7 @@ document.addEventListener('keydown', (e) => {
         closeModal();
         closePaymentModal();
         closeCertificateModal();
+        closeHostsModal();
     }
     
     // F2 for payment
