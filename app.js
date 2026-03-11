@@ -1262,10 +1262,8 @@ function showHostsSetup() {
     document.getElementById('hostsDomainInput').value = subdomain;
     document.getElementById('hostsIpInput').value = '';
     
-    // Small delay to ensure DOM is updated before updating examples
-    setTimeout(() => {
-        updateHostsExample();
-    }, 0);
+    // Update all examples based on saved subdomain
+    updateHostsExample();
     
     log('Opened DNS Hosts Setup dialog', 'info');
 }
@@ -1287,6 +1285,16 @@ function updateHostsExample() {
             pingExample.textContent = `ping ${subdomain}.pcsindonesia.com`;
         } else {
             pingExample.textContent = 'ping [subdomain].pcsindonesia.com';
+        }
+    }
+    
+    // Update info box domain
+    const infoDomain = document.getElementById('hostsInfoDomain');
+    if (infoDomain) {
+        if (subdomain && subdomain !== '[subdomain]') {
+            infoDomain.textContent = `${subdomain}.pcsindonesia.com`;
+        } else {
+            infoDomain.textContent = '[subdomain].pcsindonesia.com';
         }
     }
 }
