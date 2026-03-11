@@ -1057,6 +1057,168 @@ body {
     }
 }
 
+/* ===== Certificate Setup ===== */
+.cert-setup-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.cert-step {
+    display: flex;
+    gap: 1rem;
+    padding: 1.25rem;
+    background: var(--gray-50);
+    border-radius: var(--border-radius);
+    border: 1px solid var(--gray-200);
+}
+
+.step-number {
+    width: 32px;
+    height: 32px;
+    background: var(--primary-color);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.step-content {
+    flex: 1;
+}
+
+.step-content h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--gray-800);
+    margin-bottom: 0.5rem;
+}
+
+.step-content p {
+    font-size: 0.875rem;
+    color: var(--gray-600);
+    margin-bottom: 0.75rem;
+}
+
+.step-note {
+    margin-top: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    background: white;
+    border-radius: 6px;
+    font-size: 0.8125rem;
+    color: var(--gray-600);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.step-note i {
+    color: var(--info-color);
+}
+
+.step-note code {
+    background: var(--gray-100);
+    padding: 0.125rem 0.375rem;
+    border-radius: 4px;
+    font-family: 'Consolas', monospace;
+}
+
+.install-guide {
+    background: white;
+    padding: 1rem;
+    border-radius: 6px;
+    border: 1px solid var(--gray-200);
+}
+
+.install-guide ol {
+    margin: 0;
+    padding-left: 1.25rem;
+    font-size: 0.875rem;
+    color: var(--gray-700);
+    line-height: 1.8;
+}
+
+.install-guide li {
+    margin-bottom: 0.375rem;
+}
+
+.guide-image {
+    margin-top: 1rem;
+    text-align: center;
+}
+
+.image-placeholder {
+    background: var(--gray-100);
+    border: 2px dashed var(--gray-300);
+    border-radius: 8px;
+    padding: 2rem;
+    color: var(--gray-400);
+}
+
+.image-placeholder i {
+    font-size: 2rem;
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.cert-help-box {
+    background: var(--info-light);
+    border: 1px solid var(--info-color);
+    border-radius: var(--border-radius);
+    padding: 1rem;
+    margin-top: 0.5rem;
+}
+
+.cert-help-box h5 {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--info-color);
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.cert-help-box ul {
+    margin: 0;
+    padding-left: 1.25rem;
+    font-size: 0.8125rem;
+    color: var(--gray-700);
+    line-height: 1.7;
+}
+
+.verify-result {
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
+}
+
+.verify-result.success {
+    background: var(--success-light);
+    color: var(--success-color);
+    border: 1px solid var(--success-color);
+}
+
+.verify-result.error {
+    background: var(--danger-light);
+    color: var(--danger-color);
+    border: 1px solid var(--danger-color);
+}
+
+/* Alert styles */
+.alert {
+    border-radius: var(--border-radius);
+    padding: 1rem;
+}
+
+.alert-warning {
+    background: #fffbeb;
+    border: 1px solid #f59e0b;
+}
+
 /* ===== Scrollbar ===== */
 ::-webkit-scrollbar {
     width: 8px;

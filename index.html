@@ -302,9 +302,9 @@
                                         <i class="fas fa-vial"></i>
                                         <span>Test Connection</span>
                                     </button>
-                                    <button type="button" class="btn btn-sm btn-outline" onclick="testWSS()" id="testWssBtn" style="display:none;">
-                                        <i class="fas fa-shield-alt"></i>
-                                        <span>Test WSS</span>
+                                    <button type="button" class="btn btn-warning" onclick="showCertificateSetup()">
+                                        <i class="fas fa-certificate"></i>
+                                        <span>Setup Sertifikat (WSS)</span>
                                     </button>
                                 </div>
                             </form>
@@ -403,6 +403,91 @@
                     <button type="submit" class="btn btn-primary">Simpan</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Certificate Setup Modal -->
+    <div class="modal" id="certificateModal">
+        <div class="modal-overlay" onclick="closeCertificateModal()"></div>
+        <div class="modal-content modal-large" style="max-width: 700px;">
+            <div class="modal-header">
+                <h3>🔒 Setup Sertifikat SSL (WSS)</h3>
+                <button class="btn-close" onclick="closeCertificateModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="cert-setup-container">
+                    <!-- Step 1 -->
+                    <div class="cert-step" id="certStep1">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h4>Download Sertifikat</h4>
+                            <p>Download file sertifikat CA untuk di-install ke komputer Anda.</p>
+                            <button class="btn btn-primary" onclick="downloadCertificate()">
+                                <i class="fas fa-download"></i>
+                                Download Sertifikat CA
+                            </button>
+                            <div class="step-note">
+                                <i class="fas fa-info-circle"></i>
+                                File: <code>pcsindonesia_ca.crt</code>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 2 -->
+                    <div class="cert-step" id="certStep2">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h4>Install Sertifikat di Windows</h4>
+                            <div class="install-guide">
+                                <ol>
+                                    <li>Buka file sertifikat yang sudah di-download</li>
+                                    <li>Klik <strong>"Install Certificate..."</strong></li>
+                                    <li>Pilih <strong>"Local Machine"</strong> → Next</li>
+                                    <li>Pilih <strong>"Place all certificates in the following store"</strong></li>
+                                    <li>Klik <strong>Browse</strong> → Pilih <strong>"Trusted Root Certification Authorities"</strong></li>
+                                    <li>Next → Finish</li>
+                                    <li>Restart Google Chrome</li>
+                                </ol>
+                                <div class="guide-image">
+                                    <div class="image-placeholder">
+                                        <i class="fas fa-image"></i>
+                                        <span>Ilustrasi langkah install</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 3 -->
+                    <div class="cert-step" id="certStep3">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h4>Verifikasi Koneksi</h4>
+                            <p>Setelah install sertifikat, test koneksi ke EDC:</p>
+                            <button class="btn btn-success" onclick="verifyCertificate()">
+                                <i class="fas fa-check-circle"></i>
+                                Test Koneksi WSS
+                            </button>
+                            <div id="certVerifyResult" class="verify-result" style="margin-top: 1rem;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Help Box -->
+                    <div class="cert-help-box">
+                        <h5><i class="fas fa-question-circle"></i> Butuh Bantuan?</h5>
+                        <ul>
+                            <li>Pastikan Anda menggunakan browser <strong>Google Chrome</strong></li>
+                            <li>Jika masih error, coba restart komputer setelah install sertifikat</li>
+                            <li>Pastikan IP EDC sudah benar di menu Pengaturan</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeCertificateModal()">Tutup</button>
+            </div>
         </div>
     </div>
 

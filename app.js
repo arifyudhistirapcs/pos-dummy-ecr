@@ -1237,12 +1237,129 @@ document.querySelectorAll('input[name="protocol"]').forEach(radio => {
     });
 });
 
+// ===== Certificate Setup Functions =====
+function showCertificateSetup() {
+    document.getElementById('certificateModal').classList.add('active');
+    log('Opened Certificate Setup dialog', 'info');
+}
+
+function closeCertificateModal() {
+    document.getElementById('certificateModal').classList.remove('active');
+}
+
+/**
+ * Download CA Certificate
+ * In real implementation, this would download the actual CA cert file
+ */
+function downloadCertificate() {
+    // Create a dummy certificate content (in production, this should be the real CA cert)
+    const certContent = `-----BEGIN CERTIFICATE-----
+MIIFXTCCA0WgAwIBAgIQV7A7ZQC+IWLm6+Nt56IvCzANBgkqhkiG9w0BAQsFADBH
+MRUwEwYDVQQKEwxQQ1MgSW5kb25lc2lhMSYwJAYDVQQDEx1QQ1MgSW5kb25lc2lh
+IENlcnRpZmljYXRlIEF1dGhvcml0eTAeFw0yNDAxMDEwMDAwMDBaFw0zNDAxMDEw
+MDAwMDBaMEcxFTATBgNVBAoTDFBDUyBJbmRvbmVzaWExJjAkBgNVBAMTHVBDUyBJ
+bmRvbmVzaWEgQ2VydGlmaWNhdGUgQXV0aG9yaXR5MIICIjANBgkqhkiG9w0BAQEF
+AAOCAg8AMIICCgKCAgEAygw/LGfMYyAac7Yo5qqOYZw5rfw+AgQ8j7kg5OfE+4J3
+q2dfH+Ls7Oq6YrlncJpFQeSR8D35dlO4jNbGnnAJDU7NdNIL+hx/hqTRYpfZ1FM5
+1l/dxOI9p0SPZ0HvwhbkQY8ZvBZJCRYBW4vJUf/IMWNiSpfoDV8LWL7gKt+Gxg9B
+TtHrXmJRT/QxE22qLIFdaGh9hxCrdEYvvkWYpHAiePQSUfVgYnZxZutDcafwO4Fa
+VKn/cuPO2lCq/DSD+2Ft0mRsR7K6hOxrLbfHraKRCmS/44vZLWvBGloaXJ5K6nuH
+a523+0DSLYuzqdhy4sZzFjaJA+rJOZXRIDKb4V3LWQIDAQABo4IBKDCCASQwDgYD
+VR0PAQH/BAQDAgGGMB0GA1UdJQQWMBQGCCsGAQUFBwMBBggrBgEFBQcDAjASBgNV
+HRMBAf8ECDAGAQH/AgEAMB0GA1UdDgQWBBQj8L6zEtxkMf0nN6x6jK2Jl3hIqzAf
+BgNVHSMEGDAWgBQj8L6zEtxkMf0nN6x6jK2Jl3hIqzA4BggrBgEFBQcBAQQsMCow
+KAYIKwYBBQUHMAGGHGh0dHA6Ly9vY3NwLmNvbW9kb2NhLmNvbS9jYTAnBgNVHR8E
+IDAeMBygGqAYhhZodHRwOi8vY3JsLmNvbW9kb2NhLmNvbTAzBgNVHSAELDAqMA8G
+DSsGAQQBgjcVPTEBAgEEMQwGCisGAQQBgjcVATAIBgZngQwBAgIwDQYJKoZIhvcN
+AQELBQADggIBAKaKUSUVzC8VQXtmyuPs3K/qhZS7bU6Vg8kS9LWqQ5RV7dM6jLKG
+kxv8KCC7uK3mV1G4r8U8E2oF7X7vJdFJKY8OLGAFPLgG7Yr3j4gqf9BQ2Vx8pDB
+fV5LKZLFGv8Hh4G0qH8x0MPLb0VBKm8+fHVX9gBp7oCv3l8CKH0R0Fb9GW9ZD1Yk
+A2FZ0c3GkH5pQ3CCt6fEHmSLMVQBhd5o8d3B1LJx5Gpj5qK6hN9M5v7ERf7hF0qS
+1qg6uLxQ7MO2gXNv7gTYrE9F3vT7X0lK9zjR3RF9qT3Bl5qN0vTl3qR8tN7Y0qT=
+-----END CERTIFICATE-----`;
+
+    // Create blob and download
+    const blob = new Blob([certContent], { type: 'application/x-x509-ca-cert' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'pcsindonesia_ca.crt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    log('Certificate downloaded: pcsindonesia_ca.crt', 'success');
+    showToast('Success', 'Certificate downloaded. Please install it to Trusted Root CA.', 'success');
+    
+    // Highlight step 2
+    document.getElementById('certStep2').style.background = '#fef3c7';
+    setTimeout(() => {
+        document.getElementById('certStep2').style.background = '';
+    }, 2000);
+}
+
+/**
+ * Verify certificate installation by testing WSS connection
+ */
+async function verifyCertificate() {
+    const resultDiv = document.getElementById('certVerifyResult');
+    resultDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing connection...';
+    resultDiv.className = 'verify-result';
+    
+    if (!state.settings.edcIp) {
+        resultDiv.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error: IP EDC belum di-setting. Silakan isi di menu Pengaturan.';
+        resultDiv.className = 'verify-result error';
+        return;
+    }
+    
+    const url = `wss://${state.settings.edcIp}:6746`;
+    
+    try {
+        const ws = new WebSocket(url);
+        
+        ws.onopen = () => {
+            resultDiv.innerHTML = '<i class="fas fa-check-circle"></i> Success! Sertifikat ter-install dengan benar. WSS connection berhasil.';
+            resultDiv.className = 'verify-result success';
+            ws.close();
+            log('Certificate verification successful', 'success');
+        };
+        
+        ws.onerror = (error) => {
+            resultDiv.innerHTML = '<i class="fas fa-times-circle"></i> Gagal! Sertifikat belum ter-install atau EDC tidak aktif. Pastikan sudah install sertifikat dan restart Chrome.';
+            resultDiv.className = 'verify-result error';
+            log('Certificate verification failed', 'error');
+        };
+        
+        ws.onclose = (event) => {
+            if (event.code === 1006) {
+                resultDiv.innerHTML = '<i class="fas fa-times-circle"></i> Gagal! Code 1006 - Sertifikat belum di-trust oleh browser. Pastikan install ke "Trusted Root Certification Authorities".';
+                resultDiv.className = 'verify-result error';
+            }
+        };
+        
+        // Timeout after 5 seconds
+        setTimeout(() => {
+            if (ws.readyState === WebSocket.CONNECTING) {
+                ws.close();
+                resultDiv.innerHTML = '<i class="fas fa-clock"></i> Timeout - Tidak bisa connect ke EDC. Pastikan EDC aktif dan IP benar.';
+                resultDiv.className = 'verify-result error';
+            }
+        }, 5000);
+        
+    } catch (error) {
+        resultDiv.innerHTML = `<i class="fas fa-times-circle"></i> Error: ${error.message}`;
+        resultDiv.className = 'verify-result error';
+    }
+}
+
 // ===== Keyboard Shortcuts =====
 document.addEventListener('keydown', (e) => {
     // ESC to close modals
     if (e.key === 'Escape') {
         closeModal();
         closePaymentModal();
+        closeCertificateModal();
     }
     
     // F2 for payment

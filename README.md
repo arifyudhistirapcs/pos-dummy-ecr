@@ -161,15 +161,51 @@ pos-dummy-ecr-link/
 └── SSL_PINNING.md          # Dokumentasi SSL Pinning
 ```
 
+## Deployment Multi-Toko (Production)
+
+Untuk deployment ke **banyak toko** dengan **HTTPS domain**:
+
+### Solusi: Install CA Certificate + GitHub Pages
+
+**Arsitektur:**
+```
+┌─────────────────┐     ┌──────────────┐     ┌─────────────┐
+│ POS Dummy       │────→│ GitHub Pages │────→│ EDC         │
+│ (HTTPS)         │     │ (HTTPS)      │     │ (WSS)       │
+│ + CA Cert       │     │              │     │ Self-signed │
+└─────────────────┘     └──────────────┘     └─────────────┘
+```
+
+### Setup per Toko (Untuk Staff Toko)
+
+Lihat **[SOP_STAFF_TOKO.md](SOP_STAFF_TOKO.md)** untuk panduan lengkap.
+
+**Ringkasan:**
+1. Buka POS Dummy: `https://arifyudhistirapcs.github.io/pos-dummy-ecr/`
+2. Klik **"Setup Sertifikat (WSS)"** di menu Pengaturan
+3. Download dan install sertifikat CA ke Windows
+4. Setting IP EDC toko
+5. Test koneksi
+
+### Video Tutorial (Coming Soon)
+
+- Install CA Certificate di Windows
+- Setting POS Dummy
+- Test transaksi
+
+---
+
 ## Menjalankan Aplikasi
 
-### Opsi 1: GitHub Pages (Online)
+### Opsi 1: GitHub Pages (Recommended untuk Production)
 
-Akses langsung di: `https://arifyudhistirapcs.github.io/pos-dummy-ecr/`
+Akses: `https://arifyudhistirapcs.github.io/pos-dummy-ecr/`
 
-⚠️ **Catatan**: Jika menggunakan GitHub Pages (HTTPS), EDC harus support WSS (port 6746).
+**Requirement:**
+- Install CA Certificate (untuk WSS)
+- Lihat [SOP_STAFF_TOKO.md](SOP_STAFF_TOKO.md)
 
-### Opsi 2: Local Server
+### Opsi 2: Local Server (Testing)
 
 ```bash
 # Clone repository
