@@ -22,7 +22,7 @@ const state = {
     // Settings
     settings: {
         protocol: 'wss',
-        edcSubdomain: '',  // User inputs only subdomain (e.g., "edc-001")
+        edcSubdomain: '',  // User inputs subdomain (e.g., "store001")
         edcPort: '6746',
         posAddress: '172.0.0.1',
         secretKey: 'ECR2022secretKey',

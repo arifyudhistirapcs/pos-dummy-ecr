@@ -1,0 +1,115 @@
+    <!-- DNS Hosts Setup Modal -->
+    <div class="modal" id="hostsModal">
+        <div class="modal-overlay" onclick="closeHostsModal()"></div>
+        <div class="modal-content modal-large" style="max-width: 700px;">
+            <div class="modal-header">
+                <h3>🌐 Setup DNS Hosts</h3>
+                <button class="btn-close" onclick="closeHostsModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="cert-setup-container">
+                    <!-- Info Box -->
+                    <div style="background: #f0fdf4; border: 1px solid #22c55e; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
+                        <strong style="color: #166534;">💡 Cara Kerja</strong>
+                        <p style="margin: 0.5rem 0 0 0; font-size: 0.875rem; color: #14532d;">
+                            Domain <code>ecrlink.pcsindonesia.com</code> perlu diarahkan ke IP EDC lokal toko Anda. 
+                            Gunakan script otomatis di bawah ini untuk setup.
+                        </p>
+                    </div>
+
+                    <!-- Step 1 -->
+                    <div class="cert-step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h4>Cek IP EDC</h4>
+                            <p>Buka aplikasi <strong>ECR Link</strong> di EDC, catat IP address yang ditampilkan.</p>
+                            <div class="step-note" style="background: #fef3c7; border: 1px solid #f59e0b;">
+                                <i class="fas fa-exclamation-triangle" style="color: #f59e0b;"></i>
+                                <strong>PENTING:</strong> Pastikan IP EDC adalah <strong>STATIC IP</strong> (bukan DHCP). 
+                                Hubungi IT support jika perlu setting static IP.
+                            </div>
+                            <div class="step-note">
+                                <i class="fas fa-info-circle"></i>
+                                Contoh IP: <code>192.168.1.100</code>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Windows -->
+                    <div class="cert-step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h4>Download & Jalankan Script (Windows)</h4>
+                            <p>Download script setup untuk Windows:</p>
+                            <a href="setup-hosts-windows.bat" download class="btn btn-primary" style="margin: 0.5rem 0;">
+                                <i class="fas fa-download"></i> Download Script Windows (.bat)
+                            </a>
+                            <ol style="font-size: 0.875rem; color: var(--gray-700); line-height: 1.8; margin: 0.75rem 0 0 0;">
+                                <li>Download file <code>setup-hosts-windows.bat</code></li>
+                                <li>Klik kanan file → <strong>"Run as administrator"</strong></li>
+                                <li>Masukkan IP EDC saat diminta</li>
+                                <li>Ikuti instruksi di layar</li>
+                                <li>Script akan otomatis:
+                                    <ul style="margin-top: 0.25rem;">
+                                        <li>Backup file hosts</li>
+                                        <li>Tambahkan entry <code>IP_EDC ecrlink.pcsindonesia.com</code></li>
+                                        <li>Flush DNS cache</li>
+                                        <li>Test koneksi</li>
+                                    </ul>
+                                </li>
+                            </ol>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Mac/Linux -->
+                    <div class="cert-step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h4>Download & Jalankan Script (Mac/Linux)</h4>
+                            <p>Download script setup untuk Mac/Linux:</p>
+                            <a href="setup-hosts-macos-linux.sh" download class="btn btn-primary" style="margin: 0.5rem 0;">
+                                <i class="fas fa-download"></i> Download Script Mac/Linux (.sh)
+                            </a>
+                            <ol style="font-size: 0.875rem; color: var(--gray-700); line-height: 1.8; margin: 0.75rem 0 0 0;">
+                                <li>Download file <code>setup-hosts-macos-linux.sh</code></li>
+                                <li>Buka Terminal</li>
+                                <li>Jalankan: <code style="background: #f3f4f6; padding: 0.125rem 0.375rem; border-radius: 4px;">sudo bash setup-hosts-macos-linux.sh</code></li>
+                                <li>Masukkan IP EDC saat diminta</li>
+                                <li>Ikuti instruksi di layar</li>
+                            </ol>
+                        </div>
+                    </div>
+
+                    <!-- Step 4 -->
+                    <div class="cert-step">
+                        <div class="step-number">4</div>
+                        <div class="step-content">
+                            <h4>Test Koneksi</h4>
+                            <p>Setelah script selesai, test koneksi:</p>
+                            <ol style="font-size: 0.875rem; color: var(--gray-700); line-height: 1.8; margin: 0;">
+                                <li>Restart Google Chrome</li>
+                                <li>Buka Command Prompt / Terminal</li>
+                                <li>Ketik: <code>ping ecrlink.pcsindonesia.com</code></li>
+                                <li>Jika reply dari IP EDC, berarti sukses!</li>
+                            </ol>
+                        </div>
+                    </div>
+
+                    <!-- Help Box -->
+                    <div class="cert-help-box" style="background: #fef3c7; border-color: #f59e0b;">
+                        <h5 style="color: #92400e;"><i class="fas fa-lightbulb"></i> Tips</h5>
+                        <ul style="color: #78350f;">
+                            <li>Pastikan menjalankan script sebagai <strong>Administrator / sudo</strong></li>
+                            <li>Script akan membuat backup hosts file otomatis</li>
+                            <li>Jika ada masalah, backup file ada di lokasi yang sama dengan hosts file</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeHostsModal()">Tutup</button>
+            </div>
+        </div>
+    </div>
