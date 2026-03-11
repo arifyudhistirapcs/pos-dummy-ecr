@@ -109,9 +109,14 @@ class ECRLinkWebSocket {
                     switch(event.code) {
                         case 1006:
                             closeReason = 'Abnormal closure (Code 1006)';
-                            errorHint = url.startsWith('wss://') 
-                                ? '💡 HINT: EDC mungkin tidak support WSS. Coba ganti ke WS (port 6745) atau cek apakah ECR Link aktif.'
-                                : '💡 HINT: Cek apakah ECR Link aktif dan port 6745 terbuka.';
+                            if (url.startsWith('wss://')) {
+                                errorHint = '🚨 SSL PINNING ISSUE: EDC menggunakan self-signed certificate. ';
+                                errorHint += 'Browser tidak bisa bypass SSL validation. ';
+                                errorHint += 'SOLUSI: (1) Ganti ke WS port 6745 + Local Server, atau (2) Accept certificate di browser, atau (3) Gunakan Electron app. ';
+                                errorHint += 'Lihat SSL_PINNING.md untuk detail.';
+                            } else {
+                                errorHint = '💡 HINT: Cek apakah ECR Link aktif dan port 6745 terbuka.';
+                            }
                             break;
                         case 1001:
                             closeReason = 'Going away (Code 1001)';

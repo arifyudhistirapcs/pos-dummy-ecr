@@ -126,14 +126,39 @@ Implementasi berdasarkan **Technical Document ECR Link FMS BRI Version 4.9.0**
 6. Tunggu EDC merespons
 7. Lihat hasil transaksi di modal
 
+## ⚠️ PENTING: SSL Certificate Pinning
+
+**EDC menggunakan SSL Certificate Pinning dengan public key specific.**
+
+Ini berarti:
+- EDC memiliki **self-signed certificate** dengan RSA public key tertentu
+- WSS (port 6746) **tidak bisa langsung connect** dari browser tanpa setup tambahan
+- **Solusi:** Gunakan **WS (Port 6745)** atau setup certificate pinning
+
+### Solusi Cepat (Untuk Testing):
+```bash
+# Jalankan local server
+cd pos-dummy-ecr-link
+python3 -m http.server 3000
+
+# Buka http://localhost:3000
+# Setting: Protocol = WS, Port = 6745
+```
+
+**Detail lengkap:** Lihat [SSL_PINNING.md](SSL_PINNING.md)
+
+---
+
 ## Struktur File
 
 ```
 pos-dummy-ecr-link/
-├── index.html      # Main HTML file
-├── styles.css      # Styling CSS
-├── app.js          # JavaScript logic & WebSocket client
-└── README.md       # Dokumentasi ini
+├── index.html              # Main HTML file
+├── styles.css              # Styling CSS
+├── app.js                  # JavaScript logic & WebSocket client
+├── pcsindonesia_wss.pem    # Public key untuk WSS (SSL Pinning)
+├── README.md               # Dokumentasi ini
+└── SSL_PINNING.md          # Dokumentasi SSL Pinning
 ```
 
 ## Menjalankan Aplikasi
