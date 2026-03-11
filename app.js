@@ -1262,7 +1262,11 @@ function showHostsSetup() {
     document.getElementById('hostsDomainInput').value = subdomain;
     document.getElementById('hostsIpInput').value = '';
     
-    updateHostsExample();
+    // Small delay to ensure DOM is updated before updating examples
+    setTimeout(() => {
+        updateHostsExample();
+    }, 0);
+    
     log('Opened DNS Hosts Setup dialog', 'info');
 }
 
@@ -1272,9 +1276,19 @@ function closeHostsModal() {
 
 function updateHostsExample() {
     const ip = document.getElementById('hostsIpInput').value || '[IP_EDC]';
-    const subdomain = document.getElementById('hostsDomainInput').value || '[edc-XXX]';
+    const subdomain = document.getElementById('hostsDomainInput').value || '[subdomain]';
     const entry = `${ip} ${subdomain}.pcsindonesia.com`;
     document.getElementById('hostsEntryExample').textContent = entry;
+    
+    // Update ping test example
+    const pingExample = document.getElementById('pingTestExample');
+    if (pingExample) {
+        if (subdomain && subdomain !== '[subdomain]') {
+            pingExample.textContent = `ping ${subdomain}.pcsindonesia.com`;
+        } else {
+            pingExample.textContent = 'ping [subdomain].pcsindonesia.com';
+        }
+    }
 }
 
 function copyHostsEntry() {
