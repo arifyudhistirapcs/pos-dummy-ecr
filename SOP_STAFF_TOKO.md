@@ -17,9 +17,15 @@
 - [ ] Koneksi WiFi ke jaringan toko
 - [ ] Aplikasi ECR Link di EDC sudah aktif
 
+### ⚠️ PENTING: Static IP EDC
+Pastikan EDC menggunakan **Static IP** (bukan DHCP):
+- IP EDC tidak boleh berubah-ubah
+- Jika IP berubah, POS tidak bisa connect
+- Hubungi IT support jika EDC masih menggunakan DHCP
+
 ### Info yang Dibutuhkan:
 - IP Address EDC (lihat di aplikasi ECR Link di EDC)
-- Contoh: `192.168.1.10`
+- Contoh: `192.168.1.10` (harus static)
 
 ---
 
@@ -138,12 +144,17 @@ Atau bisa juga klik **"Setup Sertifikat (WSS)"** → **"Test Koneksi WSS"**
 
 **Cek:**
 1. Apakah aplikasi ECR Link di EDC sudah dibuka?
-2. Apakah IP Address EDC sudah benar?
+2. Apakah IP Address EDC sudah benar? **Pastikan IP tidak berubah dari settingan awal**
 3. Apakah POS dan EDC terhubung ke WiFi yang sama?
 4. Coba ping IP EDC dari komputer POS:
    - Buka Command Prompt (CMD)
    - Ketik: `ping 192.168.1.10` (ganti dengan IP EDC)
    - Jika timeout, berarti koneksi bermasalah
+
+**Jika IP EDC berubah:**
+- Tandanya EDC menggunakan DHCP (bukan Static IP)
+- Hubungi IT support segera
+- Jangan coba edit hosts file sendiri tanpa instruksi IT
 
 ### Masalah: "This site can't be reached"
 

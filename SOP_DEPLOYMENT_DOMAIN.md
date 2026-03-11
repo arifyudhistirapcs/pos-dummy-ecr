@@ -30,11 +30,33 @@
 
 ### 1. Setup Infrastruktur (Tim IT)
 
-#### a. Generate/Update Wildcard Certificate
+#### a. Pastikan EDC Menggunakan Static IP (BUKAN DHCP)
+
+**⚠️ PENTING:** IP EDC harus **Static IP**, tidak boleh DHCP (dynamic).
+
+**Kenapa Static IP penting?**
+- Jika IP berubah (DHCP), hosts file di POS menjadi tidak valid
+- Staff toko harus setup ulang setiap kali IP berubah
+- Transaksi bisa gagal mendadak
+
+**Cara Setting Static IP di EDC (Sunmi P1/P2):**
+1. Buka aplikasi **Settings** di EDC
+2. Masuk ke **WiFi** → Pilih network yang terhubung
+3. Pilih **Modify Network** atau **Advanced**
+4. Ganti dari **DHCP** ke **Static**
+5. Masukkan IP Address, Gateway, DNS
+6. Save
+
+**Cek sebelum deployment:**
+- [ ] Semua EDC sudah static IP
+- [ ] IP tidak akan berubah
+- [ ] Catat IP static masing-masing EDC
+
+#### b. Generate/Update Wildcard Certificate
 - Pastikan certificate `*.pcsindonesia.com` valid dari Sectigo
 - Deploy ke semua EDC
 
-#### b. Buat Daftar Toko
+#### c. Buat Daftar Toko
 
 | Kode Toko | Nama Toko | Subdomain | IP EDC |
 |-----------|-----------|-----------|--------|
@@ -247,6 +269,7 @@ store_code,store_name,subdomain,ip
 ## 📝 Checklist Deployment
 
 ### Pre-Deployment (Tim IT):
+- [ ] **Semua EDC menggunakan Static IP (bukan DHCP)**
 - [ ] Wildcard SSL certificate valid
 - [ ] Sample EDC tested dengan domain
 - [ ] Script generator tested
@@ -274,7 +297,7 @@ store_code,store_name,subdomain,ip
 
 ### Issue: "This site can't be reached" untuk domain
 
-**Penyebab:** Hosts file belum terupdate
+**Penyebab 1:** Hosts file belum terupdate
 
 **Solusi:**
 1. Check hosts file:
@@ -284,6 +307,14 @@ store_code,store_name,subdomain,ip
 2. Verify entry exists
 3. Flush DNS: `ipconfig /flushdns`
 4. Restart Chrome
+
+**Penyebab 2:** IP EDC berubah (DHCP) ⚠️
+
+**Solusi:**
+1. Cek IP EDC di aplikasi ECR Link
+2. Jika IP berbeda dengan hosts file, update hosts file
+3. **Long-term solution:** Pastikan EDC menggunakan Static IP
+4. Kontak IT support untuk setting static IP di EDC
 
 ### Issue: "NET::ERR_CERT_COMMON_NAME_INVALID"
 

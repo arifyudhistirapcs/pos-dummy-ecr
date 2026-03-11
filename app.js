@@ -23,7 +23,6 @@ const state = {
     settings: {
         protocol: 'wss',
         edcDomain: 'edc-001.pcsindonesia.com',  // Default domain format
-        edcIp: '',  // For hosts file reference
         edcPort: '6746',
         posAddress: '172.0.0.1',
         secretKey: 'ECR2022secretKey',
@@ -1118,7 +1117,6 @@ function updateActionTypeUI() {
 function saveSettingsToState() {
     state.settings.protocol = document.querySelector('input[name="protocol"]:checked')?.value || 'wss';
     state.settings.edcDomain = document.getElementById('edcDomain')?.value || 'edc-001.pcsindonesia.com';
-    state.settings.edcIp = document.getElementById('edcIpForHosts')?.value || '';
     state.settings.edcPort = document.getElementById('edcPort')?.value || '6746';
     state.settings.posAddress = document.getElementById('posAddress')?.value || '172.0.0.1';
     state.settings.secretKey = document.getElementById('secretKey')?.value || 'ECR2022secretKey';
@@ -1144,7 +1142,6 @@ function loadSettings() {
     if (protocolRadio) protocolRadio.checked = true;
     
     document.getElementById('edcDomain').value = state.settings.edcDomain || 'edc-001.pcsindonesia.com';
-    document.getElementById('edcIpForHosts').value = state.settings.edcIp || '';
     document.getElementById('edcPort').value = state.settings.edcPort;
     document.getElementById('posAddress').value = state.settings.posAddress;
     document.getElementById('secretKey').value = state.settings.secretKey;
