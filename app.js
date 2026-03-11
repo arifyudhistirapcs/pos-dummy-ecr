@@ -69,10 +69,11 @@ class ECRLinkWebSocket {
             log(`Connecting to ${url}...`, 'info');
 
             try {
+                log(`Creating WebSocket connection to: ${url}`, 'info');
                 this.ws = new WebSocket(url);
                 
                 this.ws.onopen = () => {
-                    log('WebSocket connected successfully', 'success');
+                    log('✅ WebSocket connected successfully', 'success');
                     state.isConnected = true;
                     state.isConnecting = false;
                     state.lastConnected = new Date();
@@ -87,23 +88,66 @@ class ECRLinkWebSocket {
                 };
 
                 this.ws.onerror = (error) => {
-                    log('WebSocket error occurred', 'error');
+                    log('❌ WebSocket error occurred', 'error');
                     console.error('WebSocket error:', error);
+                    
+                    // Provide more detailed error info
+                    const protocol = url.startsWith('wss://') ? 'WSS (Secure)' : 'WS (Non-Secure)';
+                    log(`Connection type: ${protocol}`, 'info');
+                    log(`Target: ${url.replace(/wss?:\/\//, '')}`, 'info');
+                    
                     state.isConnecting = false;
                     updateConnectionStatus();
                     reject(error);
                 };
 
                 this.ws.onclose = (event) => {
-                    log(`WebSocket closed: Code ${event.code}, Reason: ${event.reason || 'No reason provided'}`, 'warning');
+                    let closeReason = event.reason || 'No reason provided';
+                    let errorHint = '';
+                    
+                    // Provide helpful hints based on close code
+                    switch(event.code) {
+                        case 1006:
+                            closeReason = 'Abnormal closure (Code 1006)';
+                            errorHint = url.startsWith('wss://') 
+                                ? '💡 HINT: EDC mungkin tidak support WSS. Coba ganti ke WS (port 6745) atau cek apakah ECR Link aktif.'
+                                : '💡 HINT: Cek apakah ECR Link aktif dan port 6745 terbuka.';
+                            break;
+                        case 1001:
+                            closeReason = 'Going away (Code 1001)';
+                            break;
+                        case 1002:
+                            closeReason = 'Protocol error (Code 1002)';
+                            break;
+                        case 1005:
+                            closeReason = 'No status code (Code 1005)';
+                            break;
+                        case 1015:
+                            closeReason = 'TLS Handshake failed (Code 1015)';
+                            errorHint = '💡 HINT: SSL/TLS certificate EDC bermasalah. Pastikan EDC support WSS dengan certificate yang valid.';
+                            break;
+                    }
+                    
+                    log(`⚠️ WebSocket closed: ${closeReason}`, 'warning');
+                    if (errorHint) {
+                        log(errorHint, 'info');
+                    }
+                    
                     state.isConnected = false;
                     state.isConnecting = false;
                     updateConnectionStatus();
                     
                     if (this.reconnectAttempts < this.maxReconnectAttempts) {
                         this.reconnectAttempts++;
-                        log(`Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`, 'info');
+                        log(`🔄 Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`, 'info');
                         setTimeout(() => this.connect(url), this.reconnectDelay);
+                    } else {
+                        log('❌ Max reconnection attempts reached', 'error');
+                        log('💡 Silakan cek:', 'info');
+                        log('   1. Apakah ECR Link di EDC sudah aktif?', 'info');
+                        log('   2. Apakah port ' + (url.includes('6746') ? '6746 (WSS)' : '6745 (WS)') + ' terbuka?', 'info');
+                        log('   3. Apakah POS dan EDC di jaringan yang sama?', 'info');
+                        log('   4. Coba ganti protocol WSS ↔ WS', 'info');
                     }
                 };
             } catch (error) {
@@ -498,17 +542,48 @@ async function connectToEDC() {
     
     state.connectionUrl = url;
     
+    log('========================================', 'info');
+    log(`🚀 Starting connection attempt`, 'info');
+    log(`📡 Protocol: ${protocol.toUpperCase()}`, 'info');
+    log(`🎯 Target: ${state.settings.edcIp}:${port}`, 'info');
+    log(`🔗 Full URL: ${url}`, 'info');
+    log('========================================', 'info');
+    
     try {
         await ecrWs.connect(url);
         showToast('Connected', 'Successfully connected to EDC', 'success');
     } catch (error) {
-        showToast('Connection Failed', error.message || 'Could not connect to EDC', 'error');
+        showToast('Connection Failed', 'Check Activity Log for details', 'error');
     }
 }
 
 function testConnection() {
     saveSettingsToState();
     connectToEDC();
+}
+
+/**
+ * Test WSS connection with detailed diagnostics
+ */
+async function testWSS() {
+    const protocol = 'wss';
+    const port = '6746';
+    const url = `${protocol}://${state.settings.edcIp}:${port}`;
+    
+    log('========================================', 'info');
+    log('🔒 WSS CONNECTION TEST', 'info');
+    log('========================================', 'info');
+    log(`Target: ${url}`, 'info');
+    log('', 'info');
+    log('📝 Troubleshooting WSS:', 'info');
+    log('1. Pastikan ECR Link di EDC sudah aktif', 'info');
+    log('2. Cek apakah EDC support WSS (port 6746)', 'info');
+    log('3. Jika Code 1006: EDC mungkin hanya support WS', 'info');
+    log('4. Coba ganti ke WS (port 6745) jika WSS gagal', 'info');
+    log('========================================', 'info');
+    
+    // Try to connect
+    await ecrWs.connect(url);
 }
 
 // ===== Tab Navigation =====

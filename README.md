@@ -211,6 +211,58 @@ http://localhost:3000
 - Coba reconnect dengan klik tombol **Connect**
 - Restart aplikasi ECR Link di EDC
 
+### Error WSS - Code 1006
+
+**Error:** `WebSocket closed: Code 1006, Reason: No reason provided`
+
+**Penyebab:** EDC kemungkinan besar **tidak support WSS** (WebSocket Secure)
+
+**Ciri-ciri EDC tidak support WSS:**
+- Error Code 1006 muncul berulang kali
+- Tidak bisa connect meski IP dan port sudah benar
+
+**Solusi:**
+
+#### 1. Ganti ke WS (Port 6745)
+```
+Pengaturan:
+- Protocol: WS (ws://)
+- Port: 6745
+```
+
+⚠️ **Jika menggunakan GitHub Pages (HTTPS)**:
+Browser akan memblokir WS karena mixed content. Solusinya:
+
+#### 2. Gunakan Local Server
+```bash
+# Download aplikasi
+git clone https://github.com/arifyudhistirapcs/pos-dummy-ecr.git
+cd pos-dummy-ecr
+
+# Jalankan server
+python3 -m http.server 3000
+
+# Buka http://localhost:3000
+# Setting: Protocol = WS, Port = 6745
+```
+
+#### 3. Cek EDC Anda
+1. Buka aplikasi ECR Link di EDC
+2. Lihat port yang ditampilkan:
+   - Kalau **6745** → Gunakan WS
+   - Kalau **6746** → Gunakan WSS
+3. Kebanyakan EDC hanya support **6745 (WS)**
+
+### Error WSS - Code 1015
+
+**Error:** TLS Handshake failed
+
+**Penyebab:** SSL/TLS certificate EDC bermasalah atau tidak valid
+
+**Solusi:**
+- Gunakan WS (port 6745) sebagai alternatif
+- Atau pastikan EDC punya certificate SSL yang valid
+
 ## Keyboard Shortcuts
 
 | Shortcut | Fungsi |
