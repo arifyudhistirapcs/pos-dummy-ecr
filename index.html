@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POS Dummy - ECR Link</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-cash-register"></i>
+                    <span>POS Dummy</span>
+                </div>
+                <div class="version">v1.0.0</div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" data-tab="pos">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span>Kasir</span>
+                </a>
+                <a href="#" class="nav-item" data-tab="menu">
+                    <i class="fas fa-utensils"></i>
+                    <span>Kelola Menu</span>
+                </a>
+                <a href="#" class="nav-item" data-tab="settings">
+                    <i class="fas fa-cog"></i>
+                    <span>Pengaturan</span>
+                </a>
+                <a href="#" class="nav-item" data-tab="logs">
+                    <i class="fas fa-terminal"></i>
+                    <span>Activity Log</span>
+                </a>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="connection-status" id="connectionStatus">
+                    <span class="status-dot disconnected"></span>
+                    <span class="status-text">Disconnected</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <h1 id="pageTitle">Kasir</h1>
+                <div class="header-actions">
+                    <button class="btn btn-outline" id="connectBtn" onclick="toggleConnection()">
+                        <i class="fas fa-plug"></i>
+                        <span>Connect</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Tab: POS/Kasir -->
+            <div class="tab-content active" id="tab-pos">
+                <div class="pos-layout">
+                    <!-- Menu Section -->
+                    <div class="menu-section">
+                        <div class="section-header">
+                            <h2>Menu</h2>
+                            <div class="search-box">
+                                <i class="fas fa-search"></i>
+                                <input type="text" placeholder="Cari menu..." id="searchMenu">
+                            </div>
+                        </div>
+                        <div class="menu-grid" id="menuGrid">
+                            <!-- Menu items will be rendered here -->
+                        </div>
+                    </div>
+
+                    <!-- Cart Section -->
+                    <div class="cart-section">
+                        <div class="section-header">
+                            <h2>Pesanan</h2>
+                            <button class="btn btn-sm btn-danger" onclick="clearCart()">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="cart-items" id="cartItems">
+                            <div class="empty-cart">
+                                <i class="fas fa-shopping-basket"></i>
+                                <p>Keranjang kosong</p>
+                            </div>
+                        </div>
+
+                        <div class="cart-summary">
+                            <div class="summary-row">
+                                <span>Subtotal</span>
+                                <span id="subtotal">Rp 0</span>
+                            </div>
+                            <div class="summary-row">
+                                <span>Pajak (10%)</span>
+                                <span id="tax">Rp 0</span>
+                            </div>
+                            <div class="summary-row total">
+                                <span>Total</span>
+                                <span id="total">Rp 0</span>
+                            </div>
+                        </div>
+
+                        <div class="payment-section">
+                            <h3>Metode Pembayaran</h3>
+                            <div class="payment-methods">
+                                <label class="payment-method">
+                                    <input type="radio" name="paymentMethod" value="CREDIT_CARD" checked>
+                                    <div class="payment-card">
+                                        <i class="fas fa-credit-card"></i>
+                                        <span>Kartu Kredit/Debit</span>
+                                    </div>
+                                </label>
+                                <label class="payment-method">
+                                    <input type="radio" name="paymentMethod" value="QRIS">
+                                    <div class="payment-card">
+                                        <i class="fas fa-qrcode"></i>
+                                        <span>QRIS</span>
+                                    </div>
+                                </label>
+                                <label class="payment-method">
+                                    <input type="radio" name="paymentMethod" value="QRIS_TAP">
+                                    <div class="payment-card">
+                                        <i class="fas fa-mobile-alt"></i>
+                                        <span>QRIS TAP</span>
+                                    </div>
+                                </label>
+                                <label class="payment-method">
+                                    <input type="radio" name="paymentMethod" value="ALIPAY">
+                                    <div class="payment-card">
+                                        <i class="fab fa-alipay"></i>
+                                        <span>Alipay</span>
+                                    </div>
+                                </label>
+                            </div>
+                            
+                            <button class="btn btn-primary btn-large btn-pay" id="payBtn" onclick="processPayment()" disabled>
+                                <i class="fas fa-check-circle"></i>
+                                <span>Bayar Sekarang</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Menu Management -->
+            <div class="tab-content" id="tab-menu">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Kelola Menu</h2>
+                        <button class="btn btn-primary" onclick="showAddMenuModal()">
+                            <i class="fas fa-plus"></i>
+                            <span>Tambah Menu</span>
+                        </button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Nama Menu</th>
+                                    <th>Kategori</th>
+                                    <th>Harga</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="menuTableBody">
+                                <!-- Menu items will be rendered here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Settings -->
+            <div class="tab-content" id="tab-settings">
+                <div class="settings-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2>Konfigurasi EDC Connection</h2>
+                        </div>
+                        <div class="card-body">
+                            <form id="settingsForm" onsubmit="saveSettings(event)">
+                                <div class="form-group">
+                                    <label>Protocol</label>
+                                    <div class="radio-group">
+                                        <label class="radio-label">
+                                            <input type="radio" name="protocol" value="ws" checked>
+                                            <span>WS (ws://)</span>
+                                        </label>
+                                        <label class="radio-label">
+                                            <input type="radio" name="protocol" value="wss">
+                                            <span>WSS (wss://) - Secure</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="edcIp">IP Address EDC</label>
+                                    <input type="text" id="edcIp" placeholder="192.168.1.100" required>
+                                    <small class="form-hint">Masukkan IP address yang ditampilkan di aplikasi ECR Link pada EDC</small>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="edcPort">Port</label>
+                                    <input type="number" id="edcPort" value="6745" placeholder="6745 untuk WS, 6746 untuk WSS">
+                                    <small class="form-hint">Default: 6745 (WS), 6746 (WSS)</small>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="merchantId">Merchant ID</label>
+                                    <input type="text" id="merchantId" placeholder="MERCHANT001">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="terminalId">Terminal ID</label>
+                                    <input type="text" id="terminalId" placeholder="TERMINAL001">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="encryptionKey">Encryption Key (Hex)</label>
+                                    <input type="text" id="encryptionKey" placeholder="0123456789ABCDEF0123456789ABCDEF">
+                                    <small class="form-hint">Kunci enkripsi untuk payload (32 karakter hex untuk AES-256)</small>
+                                </div>
+                                
+                                <div class="form-actions">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save"></i>
+                                        <span>Simpan Pengaturan</span>
+                                    </button>
+                                    <button type="button" class="btn btn-outline" onclick="testConnection()">
+                                        <i class="fas fa-vial"></i>
+                                        <span>Test Connection</span>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <h2>Informasi Koneksi</h2>
+                        </div>
+                        <div class="card-body">
+                            <div class="info-list">
+                                <div class="info-item">
+                                    <span class="info-label">Status</span>
+                                    <span class="info-value" id="infoStatus">Disconnected</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">WebSocket URL</span>
+                                    <span class="info-value" id="infoUrl">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Last Connected</span>
+                                    <span class="info-value" id="infoLastConnected">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Total Transactions</span>
+                                    <span class="info-value" id="infoTotalTrans">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Logs -->
+            <div class="tab-content" id="tab-logs">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Activity Log</h2>
+                        <div class="header-actions">
+                            <button class="btn btn-sm btn-outline" onclick="clearLogs()">
+                                <i class="fas fa-trash"></i>
+                                <span>Clear</span>
+                            </button>
+                            <button class="btn btn-sm btn-outline" onclick="exportLogs()">
+                                <i class="fas fa-download"></i>
+                                <span>Export</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="log-container" id="logContainer">
+                        <div class="log-entry">
+                            <span class="log-time">--:--:--</span>
+                            <span class="log-type info">INFO</span>
+                            <span class="log-message">POS Dummy ECR Link started. Waiting for configuration...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Add Menu Modal -->
+    <div class="modal" id="addMenuModal">
+        <div class="modal-overlay" onclick="closeModal()"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Tambah Menu Baru</h3>
+                <button class="btn-close" onclick="closeModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form onsubmit="addMenuItem(event)">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="menuName">Nama Menu</label>
+                        <input type="text" id="menuName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="menuCategory">Kategori</label>
+                        <select id="menuCategory">
+                            <option value="Makanan">Makanan</option>
+                            <option value="Minuman">Minuman</option>
+                            <option value="Snack">Snack</option>
+                            <option value="Lainnya">Lainnya</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="menuPrice">Harga (Rp)</label>
+                        <input type="number" id="menuPrice" value="1" min="1" required>
+                        <small class="form-hint">Default Rp 1 untuk testing EDC</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeModal()">Batal</button>
+                    <button type="submit" class="btn btn-primary">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Payment Processing Modal -->
+    <div class="modal" id="paymentModal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>Processing Payment</h3>
+            </div>
+            <div class="modal-body text-center">
+                <div class="payment-status" id="paymentStatus">
+                    <div class="spinner"></div>
+                    <p class="status-message">Connecting to EDC...</p>
+                    <p class="status-detail">Please wait while we process your transaction</p>
+                </div>
+                <div class="payment-details" id="paymentDetails" style="display: none;">
+                    <!-- Will be filled dynamically -->
+                </div>
+            </div>
+            <div class="modal-footer" id="paymentFooter" style="display: none;">
+                <button class="btn btn-primary" onclick="closePaymentModal()">Tutup</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
