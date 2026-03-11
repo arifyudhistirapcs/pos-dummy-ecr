@@ -1259,11 +1259,14 @@ function showHostsSetup() {
     document.getElementById('hostsModal').classList.add('active');
     
     // Pre-fill with current settings if available
-    const domain = state.settings.edcDomain || 'edc-001.pcsindonesia.com';
-    const ip = state.settings.edcIp || '';
+    const domain = state.settings.edcDomain || '';
     
-    document.getElementById('hostsDomainInput').value = domain.replace('.pcsindonesia.com', '');
-    document.getElementById('hostsIpInput').value = ip;
+    if (domain && domain.includes('.pcsindonesia.com')) {
+        document.getElementById('hostsDomainInput').value = domain.replace('.pcsindonesia.com', '');
+    } else {
+        document.getElementById('hostsDomainInput').value = '';
+    }
+    document.getElementById('hostsIpInput').value = '';
     
     updateHostsExample();
     log('Opened DNS Hosts Setup dialog', 'info');
@@ -1274,8 +1277,8 @@ function closeHostsModal() {
 }
 
 function updateHostsExample() {
-    const ip = document.getElementById('hostsIpInput').value || '192.168.1.100';
-    const subdomain = document.getElementById('hostsDomainInput').value || 'edc-001';
+    const ip = document.getElementById('hostsIpInput').value || '[IP_EDC]';
+    const subdomain = document.getElementById('hostsDomainInput').value || '[edc-XXX]';
     const entry = `${ip} ${subdomain}.pcsindonesia.com`;
     document.getElementById('hostsEntryExample').textContent = entry;
 }
