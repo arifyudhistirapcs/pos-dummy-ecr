@@ -1257,13 +1257,28 @@ document.querySelectorAll('input[name="protocol"]').forEach(radio => {
 function showHostsSetup() {
     document.getElementById('hostsModal').classList.add('active');
     
-    // Pre-fill with current settings if available
-    const subdomain = state.settings.edcSubdomain || '';
-    document.getElementById('hostsDomainInput').value = subdomain;
-    document.getElementById('hostsIpInput').value = '';
+    // Get subdomain from settings
+    const subdomain = state.settings.edcSubdomain || '[subdomain]';
+    const fullDomain = subdomain !== '[subdomain]' ? `${subdomain}.pcsindonesia.com` : '[subdomain].pcsindonesia.com';
     
-    // Update all examples based on saved subdomain
-    updateHostsExample();
+    // Update modal content with user's subdomain
+    const modalDomain = document.getElementById('hostsModalDomain');
+    if (modalDomain) {
+        modalDomain.textContent = fullDomain;
+    }
+    
+    // Update Windows script link
+    const windowsLink = document.querySelector('a[href="setup-hosts-windows.bat"]');
+    if (windowsLink) {
+        // The script will be the same, but user needs to enter the domain when running
+        windowsLink.setAttribute('download', `setup-hosts-${subdomain}.bat`);
+    }
+    
+    // Update Mac/Linux script link
+    const macLink = document.querySelector('a[href="setup-hosts-macos-linux.sh"]');
+    if (macLink) {
+        macLink.setAttribute('download', `setup-hosts-${subdomain}.sh`);
+    }
     
     log('Opened DNS Hosts Setup dialog', 'info');
 }
