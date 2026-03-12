@@ -492,9 +492,50 @@
                         </div>
                     </div>
 
-                    <!-- Step 4 -->
+                    <!-- Step 4: Android -->
                     <div class="cert-step">
                         <div class="step-number">4</div>
+                        <div class="step-content">
+                            <h4>Android (Browser/Tablet POS)</h4>
+                            <p>Android <strong>tidak bisa edit hosts file</strong> tanpa root access. Gunakan salah satu solusi berikut:</p>
+                            
+                            <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 0.75rem; margin: 0.75rem 0;">
+                                <strong style="color: #92400e;">⚠️ Keterbatasan Android:</strong>
+                                <ul style="margin: 0.5rem 0 0 0; padding-left: 1.25rem; font-size: 0.8125rem; color: #78350f;">
+                                    <li>Browser Android tidak bisa bypass SSL/certificate validation</li>
+                                    <li>File hosts hanya bisa diedit jika device di-root (tidak direkomendasikan)</li>
+                                    <li>GitHub Pages (HTTPS) memblokir koneksi ke WS/WSS lokal</li>
+                                </ul>
+                            </div>
+
+                            <strong style="color: #166534;">✅ Solusi untuk Android:</strong>
+                            <ol style="font-size: 0.875rem; color: var(--gray-700); line-height: 1.8; margin: 0.5rem 0 0 0;">
+                                <li><strong>Local Network Setup (Recommended):</strong>
+                                    <ul style="margin-top: 0.25rem;">
+                                        <li>Setup laptop/desktop sebagai POS utama dengan hosts file</li>
+                                        <li>Android hanya untuk monitoring (tidak untuk transaksi EDC)</li>
+                                    </ul>
+                                </li>
+                                <li><strong>VPN/Proxy Setup:</strong>
+                                    <ul style="margin-top: 0.25rem;">
+                                        <li>Gunakan VPN lokal (e.g., WireGuard, OpenVPN) yang resolve domain ke IP EDC</li>
+                                        <li>Atau gunakan DNS server lokal (Pi-hole, AdGuard Home)</li>
+                                    </ul>
+                                </li>
+                                <li><strong>Local Server Mode:</strong>
+                                    <ul style="margin-top: 0.25rem;">
+                                        <li>Jalankan POS Dummy di server lokal (Raspberry Pi/mini PC)</li>
+                                        <li>Akses via IP lokal: <code>http://192.168.1.xxx:3000</code></li>
+                                        <li>Android bisa akses HTTP (tidak ada mixed content issue)</li>
+                                    </ul>
+                                </li>
+                            </ol>
+                        </div>
+                    </div>
+
+                    <!-- Step 5 -->
+                    <div class="cert-step">
+                        <div class="step-number">5</div>
                         <div class="step-content">
                             <h4>Test Koneksi</h4>
                             <p>Setelah script selesai, test koneksi:</p>
@@ -514,6 +555,7 @@
                             <li>Pastikan menjalankan script sebagai <strong>Administrator / sudo</strong></li>
                             <li>Script akan membuat backup hosts file otomatis</li>
                             <li>Jika ada masalah, backup file ada di lokasi yang sama dengan hosts file</li>
+                            <li><strong>Android/Tablet:</strong> Gunakan laptop/desktop sebagai POS utama, atau setup VPN/Local Server</li>
                         </ul>
                     </div>
                 </div>
