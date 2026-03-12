@@ -212,27 +212,6 @@
             <!-- Tab: Settings -->
             <div class="tab-content" id="tab-settings">
                 <div class="settings-grid">
-                    <!-- GitHub Pages Warning -->
-                    <div id="githubPagesWarning" class="card" style="border: 2px solid #f59e0b; display: none;">
-                        <div class="card-header" style="background: #fef3c7;">
-                            <h2 style="color: #92400e;"><i class="fas fa-exclamation-triangle"></i> GitHub Pages Detected</h2>
-                        </div>
-                        <div class="card-body">
-                            <div class="alert alert-warning" style="background: #fffbeb; border: 1px solid #f59e0b; border-radius: 8px; padding: 1rem;">
-                                <p style="color: #78350f; margin: 0 0 0.75rem 0;">
-                                    <strong>Anda mengakses dari GitHub Pages (HTTPS).</strong> Browser akan memblokir koneksi WebSocket ke EDC karena:
-                                </p>
-                                <ul style="color: #78350f; margin: 0 0 0.75rem 0; padding-left: 1.25rem;">
-                                    <li>HTTPS page tidak boleh connect ke WS (ws://) - Mixed Content Policy</li>
-                                    <li>WSS (wss://) dengan self-signed certificate akan ditolak browser</li>
-                                </ul>
-                                <p style="color: #78350f; margin: 0; font-weight: 500;">
-                                    <strong>Solusi:</strong> Gunakan <span style="color: #dc2626;">Domain Mode</span> dengan setup hosts file, atau jalankan di <span style="color: #dc2626;">Local Server</span>.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                    
                     <div class="card" style="border: 2px solid var(--success-color);">
                         <div class="card-header" style="background: var(--success-light);">
                             <h2>✅ Konfigurasi EDC Connection (Domain)</h2>

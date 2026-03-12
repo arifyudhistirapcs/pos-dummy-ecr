@@ -1178,16 +1178,6 @@ document.addEventListener('DOMContentLoaded', () => {
     updateInfoPanel();
     updateActionTypeUI();
     
-    // Check if running on GitHub Pages
-    if (window.location.hostname.includes('github.io')) {
-        const warning = document.getElementById('githubPagesWarning');
-        if (warning) {
-            warning.style.display = 'block';
-        }
-        log('⚠️ GitHub Pages detected - HTTPS restrictions apply', 'warning');
-        log('💡 Use Domain Mode + Hosts File setup for WSS connection', 'info');
-    }
-    
     // Tab navigation
     document.querySelectorAll('.nav-item').forEach(item => {
         item.addEventListener('click', (e) => {
