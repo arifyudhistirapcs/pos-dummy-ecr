@@ -110,10 +110,17 @@ class ECRLinkWebSocket {
                         case 1006:
                             closeReason = 'Abnormal closure (Code 1006)';
                             if (url.startsWith('wss://')) {
-                                errorHint = '🚨 SSL PINNING ISSUE: EDC menggunakan self-signed certificate. ';
-                                errorHint += 'Browser tidak bisa bypass SSL validation. ';
-                                errorHint += 'SOLUSI: (1) Ganti ke WS port 6745 + Local Server, atau (2) Accept certificate di browser, atau (3) Gunakan Electron app. ';
-                                errorHint += 'Lihat SSL_PINNING.md untuk detail.';
+                                // Check if running on GitHub Pages (HTTPS)
+                                if (window.location.hostname.includes('github.io')) {
+                                    errorHint = '🚨 GITHUB PAGES DETECTED: HTTPS site tidak bisa connect ke WSS dengan self-signed cert. ';
+                                    errorHint += 'SOLUSI: (1) Gunakan Domain Mode + Setup Hosts File, atau (2) Jalankan di Local Server (python3 -m http.server 3000). ';
+                                    errorHint += 'Lihat SOP_DEPLOYMENT_DOMAIN.md untuk detail.';
+                                } else {
+                                    errorHint = '🚨 SSL PINNING ISSUE: EDC menggunakan self-signed certificate. ';
+                                    errorHint += 'Browser tidak bisa bypass SSL validation. ';
+                                    errorHint += 'SOLUSI: (1) Ganti ke WS port 6745 + Local Server, atau (2) Accept certificate di browser, atau (3) Gunakan Electron app. ';
+                                    errorHint += 'Lihat SSL_PINNING.md untuk detail.';
+                                }
                             } else {
                                 errorHint = '💡 HINT: Cek apakah ECR Link aktif dan port 6745 terbuka.';
                             }
@@ -763,7 +770,7 @@ function updateCartSummary() {
 }
 
 // ===== Payment Processing =====
-function processPayment() {
+async function processPayment() {
     if (state.cart.length === 0) {
         showToast('Error', 'Cart is empty', 'error');
         return;
@@ -1170,6 +1177,16 @@ document.addEventListener('DOMContentLoaded', () => {
     updateConnectionStatus();
     updateInfoPanel();
     updateActionTypeUI();
+    
+    // Check if running on GitHub Pages
+    if (window.location.hostname.includes('github.io')) {
+        const warning = document.getElementById('githubPagesWarning');
+        if (warning) {
+            warning.style.display = 'block';
+        }
+        log('⚠️ GitHub Pages detected - HTTPS restrictions apply', 'warning');
+        log('💡 Use Domain Mode + Hosts File setup for WSS connection', 'info');
+    }
     
     // Tab navigation
     document.querySelectorAll('.nav-item').forEach(item => {
