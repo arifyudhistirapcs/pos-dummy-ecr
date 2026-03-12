@@ -492,44 +492,71 @@
                         </div>
                     </div>
 
-                    <!-- Step 4: Android -->
+                    <!-- Step 4: Android (Tablet POS) -->
                     <div class="cert-step">
                         <div class="step-number">4</div>
                         <div class="step-content">
-                            <h4>Android (Browser/Tablet POS)</h4>
-                            <p>Android <strong>tidak bisa edit hosts file</strong> tanpa root access. Gunakan salah satu solusi berikut:</p>
+                            <h4>Android Tablet POS (Tanpa Root)</h4>
+                            <p>Android tidak bisa edit hosts file tanpa root, gunakan salah satu solusi berikut:</p>
                             
                             <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 0.75rem; margin: 0.75rem 0;">
-                                <strong style="color: #92400e;">⚠️ Keterbatasan Android:</strong>
+                                <strong style="color: #92400e;">⚠️ Catatan Penting:</strong>
                                 <ul style="margin: 0.5rem 0 0 0; padding-left: 1.25rem; font-size: 0.8125rem; color: #78350f;">
-                                    <li>Browser Android tidak bisa bypass SSL/certificate validation</li>
-                                    <li>File hosts hanya bisa diedit jika device di-root (tidak direkomendasikan)</li>
-                                    <li>GitHub Pages (HTTPS) memblokir koneksi ke WS/WSS lokal</li>
+                                    <li>Browser Android strict terhadap SSL/HTTPS validation</li>
+                                    <li>HTTPS page tidak bisa connect ke WS/WSS dengan self-signed cert</li>
+                                    <li>Solusi: Gunakan HTTP (bukan HTTPS) atau DNS Resolver App</li>
                                 </ul>
                             </div>
 
-                            <strong style="color: #166534;">✅ Solusi untuk Android:</strong>
-                            <ol style="font-size: 0.875rem; color: var(--gray-700); line-height: 1.8; margin: 0.5rem 0 0 0;">
-                                <li><strong>Local Network Setup (Recommended):</strong>
-                                    <ul style="margin-top: 0.25rem;">
-                                        <li>Setup laptop/desktop sebagai POS utama dengan hosts file</li>
-                                        <li>Android hanya untuk monitoring (tidak untuk transaksi EDC)</li>
-                                    </ul>
-                                </li>
-                                <li><strong>VPN/Proxy Setup:</strong>
-                                    <ul style="margin-top: 0.25rem;">
-                                        <li>Gunakan VPN lokal (e.g., WireGuard, OpenVPN) yang resolve domain ke IP EDC</li>
-                                        <li>Atau gunakan DNS server lokal (Pi-hole, AdGuard Home)</li>
-                                    </ul>
-                                </li>
-                                <li><strong>Local Server Mode:</strong>
-                                    <ul style="margin-top: 0.25rem;">
-                                        <li>Jalankan POS Dummy di server lokal (Raspberry Pi/mini PC)</li>
-                                        <li>Akses via IP lokal: <code>http://192.168.1.xxx:3000</code></li>
-                                        <li>Android bisa akses HTTP (tidak ada mixed content issue)</li>
-                                    </ul>
-                                </li>
-                            </ol>
+                            <strong style="color: #166534;">✅ Solusi untuk Android Tablet POS:</strong>
+                            
+                            <div style="margin: 0.75rem 0; padding: 0.75rem; background: #f0fdf4; border: 1px solid #22c55e; border-radius: 8px;">
+                                <strong style="color: #166534;">Solusi 1: DNS Changer App (Recommended)</strong>
+                                <ol style="font-size: 0.875rem; color: var(--gray-700); line-height: 1.8; margin: 0.5rem 0 0 0;">
+                                    <li>Install aplikasi <strong>"Hosts Go"</strong> atau <strong>"Virtual Hosts"</strong> dari Play Store</li>
+                                    <li>Buka aplikasi, tambahkan entry:
+                                        <br><code>[IP_EDC] [subdomain].pcsindonesia.com</code>
+                                    </li>
+                                    <li>Aktifkan VPN (aplikasi akan membuat VPN lokal)</li>
+                                    <li>Buka browser, akses POS Dummy</li>
+                                </ol>
+                            </div>
+
+                            <div style="margin: 0.75rem 0; padding: 0.75rem; background: #eff6ff; border: 1px solid #3b82f6; border-radius: 8px;">
+                                <strong style="color: #1e40af;">Solusi 2: Local HTTP Server (Termux)</strong>
+                                <ol style="font-size: 0.875rem; color: var(--gray-700); line-height: 1.8; margin: 0.5rem 0 0 0;">
+                                    <li>Install <strong>Termux</strong> dari Play Store/F-Droid</li>
+                                    <li>Jalankan di Termux:
+                                        <br><code style="background: #f3f4f6; padding: 0.125rem 0.375rem; border-radius: 4px;">pkg install python -y</code>
+                                        <br><code style="background: #f3f4f6; padding: 0.125rem 0.375rem; border-radius: 4px;">git clone https://github.com/arifyudhistirapcs/pos-dummy-ecr.git</code>
+                                        <br><code style="background: #f3f4f6; padding: 0.125rem 0.375rem; border-radius: 4px;">cd pos-dummy-ecr && python -m http.server 3000</code>
+                                    </li>
+                                    <li>Edit file <code>/data/data/com.termux/files/usr/etc/hosts</code> di Termux</li>
+                                    <li>Buka browser: <code>http://localhost:3000</code></li>
+                                </ol>
+                            </div>
+
+                            <div style="margin: 0.75rem 0; padding: 0.75rem; background: #faf5ff; border: 1px solid #a855f7; border-radius: 8px;">
+                                <strong style="color: #6b21a8;">Solusi 3: Router/Network DNS Setup</strong>
+                                <ol style="font-size: 0.875rem; color: var(--gray-700); line-height: 1.8; margin: 0.5rem 0 0 0;">
+                                    <li>Akses admin panel router WiFi toko</li>
+                                    <li>Tambahkan DNS Static/Host Mapping:
+                                        <br><code>[subdomain].pcsindonesia.com → [IP_EDC]</code>
+                                    </li>
+                                    <li>Semua device di network akan resolve domain ke IP EDC</li>
+                                    <li>Android tablet akan otomatis menggunakan DNS router</li>
+                                </ol>
+                            </div>
+
+                            <div style="margin: 0.75rem 0; padding: 0.75rem; background: #fff7ed; border: 1px solid #f97316; border-radius: 8px;">
+                                <strong style="color: #9a3412;">Solusi 4: WebView POS App (APK Custom)</strong>
+                                <ol style="font-size: 0.875rem; color: var(--gray-700); line-height: 1.8; margin: 0.5rem 0 0 0;">
+                                    <li>Hubungi developer untuk build APK custom</li>
+                                    <li>APK menggunakan WebView dengan custom DNS resolver</li>
+                                    <li>Bisa bypass SSL validation untuk domain internal</li>
+                                    <li>Icon launcher dedicated untuk toko</li>
+                                </ol>
+                            </div>
                         </div>
                     </div>
 
@@ -555,7 +582,7 @@
                             <li>Pastikan menjalankan script sebagai <strong>Administrator / sudo</strong></li>
                             <li>Script akan membuat backup hosts file otomatis</li>
                             <li>Jika ada masalah, backup file ada di lokasi yang sama dengan hosts file</li>
-                            <li><strong>Android/Tablet:</strong> Gunakan laptop/desktop sebagai POS utama, atau setup VPN/Local Server</li>
+                            <li><strong>Android Tablet POS:</strong> Gunakan DNS Changer App (Hosts Go/Virtual Hosts) atau setup DNS di router</li>
                         </ul>
                     </div>
                 </div>
