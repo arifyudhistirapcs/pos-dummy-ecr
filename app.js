@@ -1224,6 +1224,18 @@ function showHostsSetup() {
         modalDomain.textContent = fullDomain;
     }
     
+    // Replace all placeholders in modal content
+    const modalContent = document.querySelector('#hostsModal .modal-body');
+    if (modalContent) {
+        // Replace ecrlink.pcsindonesia.com with actual domain
+        const html = modalContent.innerHTML;
+        const updatedHtml = html
+            .replace(/ecrlink\.pcsindonesia\.com/g, fullDomain)
+            .replace(/\[subdomain\]\.pcsindonesia\.com/g, fullDomain)
+            .replace(/\[subdomain\]/g, subdomain);
+        modalContent.innerHTML = updatedHtml;
+    }
+    
     // Update Windows script link
     const windowsLink = document.querySelector('a[href="setup-hosts-windows.bat"]');
     if (windowsLink) {
