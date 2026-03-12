@@ -223,6 +223,11 @@ const ECREncryption = {
             
             return encryptedToken;
         } catch (error) {
+            if (error.message.includes('Failed to fetch')) {
+                log(`ERROR: Tidak bisa konek ke API enkripsi (66.42.53.16:8080)`, 'error');
+                log(`Solusi: Gunakan http://localhost:3000 (bukan https://)`, 'warning');
+                log(`Atau minta IT setup HTTPS untuk API enkripsi`, 'warning');
+            }
             log(`Encryption API error: ${error.message}`, 'error');
             throw error;
         }
