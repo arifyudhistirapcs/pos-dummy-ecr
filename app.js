@@ -195,86 +195,36 @@ class ECRLinkWebSocket {
 
 const ecrWs = new ECRLinkWebSocket();
 
-// ===== AES/ECB/PKCS5Padding Encryption =====
+// ===== Encryption via API =====
 const ECREncryption = {
     /**
-     * Generate SHA-1 hash and return first 16 bytes (128-bit key)
+     * Encrypt payload using external API
+     * API: http://66.42.53.16:8080/encrypt
      */
-    async generateKey(secret) {
-        const encoder = new TextEncoder();
-        const data = encoder.encode(secret);
-        const hashBuffer = await crypto.subtle.digest('SHA-1', data);
-        const hashArray = new Uint8Array(hashBuffer);
-        // Take first 16 bytes for AES-128
-        return hashArray.slice(0, 16);
-    },
-
-    /**
-     * PKCS5/PKCS7 Padding
-     */
-    pkcs5Padding(data) {
-        const blockSize = 16;
-        const paddingLen = blockSize - (data.length % blockSize);
-        const padded = new Uint8Array(data.length + paddingLen);
-        padded.set(data);
-        for (let i = data.length; i < padded.length; i++) {
-            padded[i] = paddingLen;
-        }
-        return padded;
-    },
-
-    /**
-     * Encrypt using AES-ECB-PKCS5Padding
-     * This mimics Java's AES/ECB/PKCS5Padding
-     */
-    async encrypt(strToEncrypt, secretKey = state.settings.secretKey) {
+    async encrypt(payload) {
         try {
-            const keyBytes = await this.generateKey(secretKey);
+            const jsonString = typeof payload === 'string' ? payload : JSON.stringify(payload);
+            log(`Sending payload to encryption API...`, 'info');
             
-            // Import key
-            const cryptoKey = await crypto.subtle.importKey(
-                'raw',
-                keyBytes,
-                { name: 'AES-ECB' },
-                false,
-                ['encrypt']
-            );
+            const response = await fetch('http://66.42.53.16:8080/encrypt', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: jsonString
+            });
 
-            // Convert string to bytes and apply PKCS5 padding
-            const encoder = new TextEncoder();
-            const dataBytes = encoder.encode(strToEncrypt);
-            const paddedData = this.pkcs5Padding(dataBytes);
-
-            // Encrypt each block manually (since Web Crypto doesn't support ECB directly)
-            const blockSize = 16;
-            const numBlocks = paddedData.length / blockSize;
-            const encryptedBlocks = [];
-
-            for (let i = 0; i < numBlocks; i++) {
-                const block = paddedData.slice(i * blockSize, (i + 1) * blockSize);
-                const encryptedBlock = await crypto.subtle.encrypt(
-                    { name: 'AES-ECB' },
-                    cryptoKey,
-                    block
-                );
-                encryptedBlocks.push(new Uint8Array(encryptedBlock));
+            if (!response.ok) {
+                throw new Error(`API Error: ${response.status} ${response.statusText}`);
             }
 
-            // Combine all blocks
-            const totalLength = encryptedBlocks.reduce((sum, block) => sum + block.length, 0);
-            const result = new Uint8Array(totalLength);
-            let offset = 0;
-            for (const block of encryptedBlocks) {
-                result.set(block, offset);
-                offset += block.length;
-            }
-
-            // Convert to Base64 (same as Java's Base64.getEncoder())
-            return btoa(String.fromCharCode(...result));
+            const encryptedToken = await response.text();
+            log(`Encrypted token received: ${encryptedToken.substring(0, 50)}...`, 'info');
+            
+            return encryptedToken;
         } catch (error) {
-            log(`Encryption error: ${error.message}`, 'error');
-            // Fallback to simple Base64
-            return btoa(strToEncrypt);
+            log(`Encryption API error: ${error.message}`, 'error');
+            throw error;
         }
     },
 
@@ -282,10 +232,7 @@ const ECREncryption = {
      * Generate encrypted token for ECR Link
      */
     async generateToken(payload) {
-        const jsonString = JSON.stringify(payload);
-        log(`Payload to encrypt: ${jsonString}`, 'info');
-        const encrypted = await this.encrypt(jsonString);
-        log(`Encrypted token (Base64): ${encrypted.substring(0, 50)}...`, 'info');
+        const encrypted = await this.encrypt(payload);
         return encrypted;
     }
 };
@@ -867,11 +814,11 @@ async function processPayment() {
         
         log(`Building ${actionType} payload with method: ${payload.method || 'purchase'}`, 'info');
         
-        // Encrypt payload
-        updatePaymentStatus('encrypting', 'Encrypting payload...', 'Using AES/ECB/PKCS5Padding');
-        await sleep(500);
+        // Encrypt payload via API
+        updatePaymentStatus('encrypting', 'Encrypting payload...', 'Sending to encryption API');
         
         const encryptedToken = await ECREncryption.generateToken(payload);
+        log(`Token encrypted successfully`, 'success');
         
         // Send to EDC
         updatePaymentStatus('sending', 'Sending to EDC...', 'Waiting for EDC response');
@@ -1237,7 +1184,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Log initial message
     log('POS Dummy ECR Link initialized', 'info');
-    log('AES/ECB/PKCS5Padding encryption ready', 'info');
+    log('Encryption via API (66.42.53.16:8080) ready', 'info');
     log('Please configure EDC subdomain in Settings', 'info');
 });
 
