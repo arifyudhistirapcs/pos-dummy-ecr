@@ -10,54 +10,63 @@ Android tidak bisa edit `/etc/hosts` file tanpa root access, dan browser Android
 
 ## Solusi
 
-### Solusi 1: DNS Changer App (Recommended - Paling Mudah)
+### Solusi 1: PersonalDNSfilter (Recommended - Paling Mudah)
 
-Menggunakan aplikasi VPN lokal yang bisa override DNS resolution.
+Menggunakan aplikasi **PersonalDNSfilter** yang tersedia di Play Store.
 
-#### Aplikasi yang Direkomendasikan:
+#### Keuntungan PersonalDNSfilter:
+- Open source dan gratis
+- Tidak perlu root
+- Interface sederhana
+- Bisa tambahkan custom hosts entries
 
-1. **Hosts Go** (Play Store)
-   - Gratis, mudah digunakan
-   - Support custom hosts entries
-   - Tidak perlu root
+#### Play Store URL:
+https://play.google.com/store/apps/details?id=dnsfilter.android
 
-2. **Virtual Hosts** (Play Store)
-   - Load hosts file dari storage
-   - Support wildcard domains
-   - Interface sederhana
+#### Langkah Setup PersonalDNSfilter:
 
-#### Langkah Setup (Hosts Go):
+1. **Install Aplikasi**
+   - Buka Play Store di Android tablet
+   - Cari "PersonalDNSfilter" atau klik link: https://play.google.com/store/apps/details?id=dnsfilter.android
+   - Install aplikasi
 
-1. Install **Hosts Go** dari Google Play Store
-2. Buka aplikasi, tap menu (☰) → **Hosts**
-3. Tambahkan entry baru:
-   ```
-   IP: 192.168.1.100 (IP EDC Anda)
-   Domain: store001.pcsindonesia.com
-   ```
-4. Tap **Save**
-5. Kembali ke home, tap tombol **START** (akan membuat VPN lokal)
-6. Berikan izin VPN jika diminta
-7. Buka Chrome, akses: `https://arifyudhistirapcs.github.io/pos-dummy-ecr/`
-8. Setting subdomain: `store001`
-9. Test koneksi ke EDC
+2. **Buka Aplikasi & Berikan Izin**
+   - Buka PersonalDNSfilter
+   - Akan muncul permintaan izin VPN, tap "Allow" / "Izinkan"
+   - Aplikasi akan membuat VPN lokal (DNS traffic di-intercept)
 
-#### Langkah Setup (Virtual Hosts):
+3. **Konfigurasi Additional Hosts**
+   - Di layar utama, scroll ke bawah
+   - Tap **"Advanced Settings"** (buka expand)
+   - Tap **"Configure Additional Hosts"** (buka expand)
+   - Di text area yang muncul, tambahkan entry:
+     ```
+     192.168.1.100 store001.pcsindonesia.com
+     ```
+     (Ganti `192.168.1.100` dengan IP EDC Anda, dan `store001` dengan subdomain Anda)
 
-1. Install **Virtual Hosts** dari Play Store
-2. Buat file `hosts.txt` di storage Android:
-   ```
-   192.168.1.100 store001.pcsindonesia.com
-   ```
-3. Buka Virtual Hosts, tap **Select Hosts File**
-4. Pilih file `hosts.txt` yang dibuat
-5. Tap **Start**
-6. Berikan izin VPN
-7. POS Dummy siap digunakan
+4. **Aktifkan Additional Hosts**
+   - Pastikan toggle **"Configure Additional Hosts"** dalam keadaan ON (biru)
+   - Tap lagi "Advanced Settings" untuk menutup expand
+
+5. **Start VPN**
+   - Kembali ke layar utama aplikasi
+   - Tap tombol **"START"** yang besar di tengah
+   - Akan muncul key icon di status bar (artinya VPN aktif)
+
+6. **Test Koneksi**
+   - Buka Chrome/browser
+   - Akses: https://arifyudhistirapcs.github.io/pos-dummy-ecr/
+   - Masukkan subdomain di Pengaturan
+   - Test Connect ke EDC
+
+#### Screenshot Referensi:
+- Layar utama: Tombol START untuk aktifkan VPN
+- Advanced Settings → Configure Additional Hosts: Tempat menambahkan entry hosts
 
 ---
 
-### Solusi 2: Setup DNS di Router (Best for Multiple Devices)
+### Solusi 2: Router/Network DNS Setup (Best for Multiple Devices)
 
 Jika toko Anda punya access ke router WiFi, setup DNS static di router.
 
@@ -90,53 +99,7 @@ add name=store001.pcsindonesia.com address=192.168.1.100
 
 ---
 
-### Solusi 3: Local HTTP Server (Termux)
-
-Jalankan POS Dummy langsung di Android tablet.
-
-#### Requirements:
-- Android 7.0+
-- Storage: 200MB
-- RAM: 2GB+
-
-#### Langkah:
-
-1. Install **Termux** dari Play Store atau F-Droid
-2. Buka Termux, jalankan commands:
-   ```bash
-   # Update packages
-   pkg update -y
-   
-   # Install Python & Git
-   pkg install python git -y
-   
-   # Clone repository
-   git clone https://github.com/arifyudhistirapcs/pos-dummy-ecr.git
-   
-   # Enter directory
-   cd pos-dummy-ecr
-   
-   # Edit hosts file (Termux bisa edit hosts tanpa root)
-   echo "192.168.1.100 store001.pcsindonesia.com" >> /data/data/com.termux/files/usr/etc/hosts
-   
-   # Start server
-   python -m http.server 3000
-   ```
-3. Buka browser, akses: `http://localhost:3000`
-4. POS Dummy berjalan di tablet!
-
-#### Keuntungan:
-- Tidak perlu internet setelah clone
-- Bisa edit hosts (Termux environment)
-- Full control
-
-#### Kekurangan:
-- Perlu jalankan Termux setiap boot
-- Lebih kompleks untuk non-technical user
-
----
-
-### Solusi 4: Custom WebView APK (Production Ready)
+### Solusi 3: Custom WebView APK (Production Ready)
 
 Build APK custom khusus untuk toko Anda.
 
@@ -156,31 +119,51 @@ Hubungi developer untuk build APK custom dengan:
 
 ---
 
+## Alternatif Lain (Jika PersonalDNSfilter bermasalah)
+
+### Hosts Go (Play Store)
+- Lebih sederhana interface-nya
+- Langsung tambah IP + Domain
+- Tidak se-powerful PersonalDNSfilter tapi lebih mudah
+
+### Virtual Hosts (Play Store)
+- Bisa import file hosts
+- Support wildcard domains
+
+---
+
 ## Troubleshooting Android
 
-### Masalah: VPN App tidak bisa start
+### Masalah: PersonalDNSfilter tidak bisa start
 **Solusi:**
 - Pastikan tidak ada VPN lain yang aktif
-- Cek izin: Settings → Apps → [VPN App] → Permissions → VPN → Allow
+- Cek izin: Settings → Apps → PersonalDNSfilter → Permissions → VPN → Allow
 - Restart tablet
+
+### Masalah: Entry hosts tidak berfungsi
+**Solusi:**
+- Pastikan format benar: `IP_ADDRESS DOMAIN` (contoh: `192.168.1.100 store001.pcsindonesia.com`)
+- Pastikan toggle "Configure Additional Hosts" dalam keadaan ON
+- Restart PersonalDNSfilter (tap STOP lalu START)
+- Clear browser cache
 
 ### Masalah: Browser tetap tidak resolve domain
 **Solusi:**
 - Clear browser cache: Chrome → Settings → Privacy → Clear browsing data
 - Gunakan Incognito mode untuk test
 - Coba browser lain (Firefox, Samsung Internet)
-- Pastikan VPN status "Connected"
+- Pastikan PersonalDNSfilter status "Running" (tombol hijau)
 
 ### Masalah: "NET::ERR_CERT_AUTHORITY_INVALID"
 **Solusi:**
 - Ini SSL error karena GitHub Pages (HTTPS) ke WSS (self-signed)
-- Gunakan Domain Mode + DNS Changer App
-- Atau akses via HTTP (Solusi 2 atau 3)
+- Gunakan Domain Mode + PersonalDNSfilter
+- Pastikan subdomain resolve ke IP EDC
 
 ### Masalah: EDC tidak terhubung
 **Solusi:**
 - Pastikan IP EDC statis (bukan DHCP)
-- Cek ping: `ping store001.pcsindonesia.com` (via Termux atau network tools app)
+- Cek ping: Gunakan app "Ping & DNS" atau akses `http://store001.pcsindonesia.com` di browser
 - Pastikan port 6745/6746 terbuka di firewall EDC
 - Test koneksi dari laptop dulu untuk memastikan EDC berfungsi
 
@@ -190,10 +173,9 @@ Hubungi developer untuk build APK custom dengan:
 
 | Skenario | Solusi Recommended |
 |----------|-------------------|
-| 1-2 tablet, non-technical user | Solusi 1: DNS Changer App |
+| 1-2 tablet, user biasa | Solusi 1: PersonalDNSfilter |
 | Banyak tablet (3+), punya router access | Solusi 2: Router DNS Setup |
-| Technical user, standalone tablet | Solusi 3: Termux |
-| Production, branded POS | Solusi 4: Custom APK |
+| Production, branded POS | Solusi 3: Custom APK |
 
 ---
 
@@ -201,10 +183,13 @@ Hubungi developer untuk build APK custom dengan:
 
 - [ ] IP EDC sudah di-set statis (bukan DHCP)
 - [ ] Subdomain sudah ditentukan (contoh: store001.pcsindonesia.com)
-- [ ] Install DNS Changer App / Setup Router DNS
-- [ ] Tambahkan entry hosts (IP → Domain)
-- [ ] Aktifkan VPN (jika menggunakan app)
-- [ ] Test ping domain di browser/network tools
+- [ ] Install PersonalDNSfilter dari Play Store
+- [ ] Buka app, berikan izin VPN
+- [ ] Advanced Settings → Configure Additional Hosts
+- [ ] Tambahkan entry: `IP_EDC subdomain.pcsindonesia.com`
+- [ ] Aktifkan toggle "Configure Additional Hosts"
+- [ ] Kembali ke home, tap START
+- [ ] Test akses domain di browser
 - [ ] Buka POS Dummy
 - [ ] Setting subdomain di Pengaturan
 - [ ] Test Connect ke EDC
@@ -215,16 +200,16 @@ Hubungi developer untuk build APK custom dengan:
 ## Catatan Penting
 
 ### Keamanan
-- DNS Changer App membuat VPN lokal (tidak keluar ke internet)
+- PersonalDNSfilter membuat VPN lokal (tidak keluar ke internet)
 - Data transaksi tetap encrypted (AES)
 - Tidak ada data yang disimpan di cloud
 
 ### Performa
 - DNS resolution sedikit lebih lambat (VPN overhead)
-- Untuk performa terbaik, gunakan Solusi 2 (Router DNS) atau Solusi 3 (Local Server)
+- Untuk performa terbaik, gunakan Solusi 2 (Router DNS)
 
 ### Maintenance
-- Jika IP EDC berubah, update entry di DNS app/router
+- Jika IP EDC berubah, update entry di PersonalDNSfilter
 - Recommended: Setup static IP di EDC agar tidak berubah
 
 ---
