@@ -21,13 +21,18 @@ const state = {
     
     // Settings
     settings: {
+        connectionType: 'wss',  // 'wss', 'ws', or 'api'
         protocol: 'wss',
         edcSubdomain: '',  // User inputs subdomain (e.g., "store001")
         edcPort: '6746',
         posAddress: '172.0.0.1',
         secretKey: 'ECR2022secretKey',
         // Action types: Sale, Contactless, CardVerification, SaleCompletion, Cicilan, Void, CheckStatus
-        actionType: 'Sale'
+        actionType: 'Sale',
+        // API settings (for middleware connection)
+        apiUrl: 'https://development-ecrlink.pcsindonesia.com',
+        mid: '',
+        tid: ''
     },
     
     // Menu & Cart
@@ -240,10 +245,7 @@ const ECREncryption = {
      */
     generateToken(payload) {
         const jsonString = JSON.stringify(payload);
-        log(`Payload to encrypt: ${jsonString}`, 'info');
-        const encrypted = this.encrypt(jsonString);
-        log(`Encrypted token (Base64): ${encrypted.substring(0, 50)}...`, 'info');
-        return encrypted;
+        return this.encrypt(jsonString);
     }
 };
 
@@ -477,14 +479,35 @@ function updateConnectionStatus() {
 }
 
 function updateInfoPanel() {
+    const connectionType = state.settings.connectionType || 'wss';
     document.getElementById('infoStatus').textContent = state.isConnected ? 'Connected' : 'Disconnected';
+    document.getElementById('infoConnectionType').textContent = connectionType.toUpperCase();
     
-    // Show domain in info URL
-    let displayUrl = state.connectionUrl || '-';
-    if (state.settings.edcSubdomain && !state.isConnected) {
-        displayUrl = `${state.settings.protocol}://${state.settings.edcSubdomain}.pcsindonesia.com:${state.settings.edcPort}`;
+    // Handle API connection type
+    if (connectionType === 'api') {
+        document.getElementById('infoUrlLabel').textContent = 'API URL';
+        document.getElementById('infoUrl').textContent = state.settings.apiUrl || 'https://development-ecrlink.pcsindonesia.com';
+        
+        // Show MID/TID row
+        const midTidRow = document.getElementById('infoMidTidRow');
+        if (midTidRow) {
+            midTidRow.style.display = 'flex';
+            document.getElementById('infoMidTid').textContent = `${state.settings.mid || '-'} / ${state.settings.tid || '-'}`;
+        }
+    } else {
+        document.getElementById('infoUrlLabel').textContent = 'WebSocket URL';
+        
+        // Show domain in info URL
+        let displayUrl = state.connectionUrl || '-';
+        if (state.settings.edcSubdomain && !state.isConnected) {
+            displayUrl = `${state.settings.protocol}://${state.settings.edcSubdomain}.pcsindonesia.com:${state.settings.edcPort}`;
+        }
+        document.getElementById('infoUrl').textContent = displayUrl;
+        
+        // Hide MID/TID row
+        const midTidRow = document.getElementById('infoMidTidRow');
+        if (midTidRow) midTidRow.style.display = 'none';
     }
-    document.getElementById('infoUrl').textContent = displayUrl;
     
     document.getElementById('infoLastConnected').textContent = state.lastConnected ? state.lastConnected.toLocaleString('id-ID') : '-';
     document.getElementById('infoTotalTrans').textContent = state.totalTransactions;
@@ -535,9 +558,83 @@ async function connectToEDC() {
     }
 }
 
-function testConnection() {
+async function testConnection() {
     saveSettingsToState();
-    connectToEDC();
+    
+    if (state.settings.connectionType === 'api') {
+        await testAPIConnection();
+    } else {
+        connectToEDC();
+    }
+}
+
+/**
+ * Test API connection to middleware
+ */
+async function testAPIConnection() {
+    log('========================================', 'info');
+    log('🔌 API CONNECTION TEST', 'info');
+    log('========================================', 'info');
+    
+    if (!state.settings.mid || !state.settings.tid) {
+        log('❌ MID and TID must be configured', 'error');
+        showToast('Error', 'Please configure MID and TID in Settings', 'error');
+        return;
+    }
+    
+    log(`API URL: ${state.settings.apiUrl}`, 'info');
+    log(`MID: ${state.settings.mid}`, 'info');
+    log(`TID: ${state.settings.tid}`, 'info');
+    log('', 'info');
+    
+    try {
+        // Test API endpoint with a simple request
+        const apiUrl = `${state.settings.apiUrl}/api/v1/transaction`;
+        log(`Testing endpoint: ${apiUrl}`, 'info');
+        
+        // Try a test request (will fail with 400 but that's expected)
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            mode: 'cors',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ test: true })
+        }).catch(err => {
+            if (err.name === 'TypeError' && err.message.includes('fetch')) {
+                throw new Error(`Cannot connect to API server. Please ensure:
+1. Middleware API is running at ${state.settings.apiUrl}
+2. If using localhost, ensure API and POS are on same origin
+3. Check API_CONTRACT.md for setup instructions`);
+            }
+            throw err;
+        });
+        
+        if (response.status === 400) {
+            log(`✅ API server is running and reachable!`, 'success');
+            log(`   Note: 400 Bad Request is expected for test payload`, 'info');
+            showToast('Success', 'API server is reachable', 'success');
+        } else if (response.ok) {
+            log(`✅ API connection successful (Status: ${response.status})`, 'success');
+            showToast('Success', 'API connection test successful', 'success');
+        } else {
+            log(`⚠️ API returned status: ${response.status}`, 'warning');
+        }
+        
+    } catch (error) {
+        log(`❌ API connection failed:`, 'error');
+        log(`   ${error.message}`, 'error');
+        log('', 'info');
+        log('💡 Troubleshooting:', 'info');
+        log('   1. Ensure middleware is running on the API URL', 'info');
+        log('   2. Check firewall/antivirus is not blocking the connection', 'info');
+        log('   3. If API is on different origin, ensure CORS is enabled', 'info');
+        log('   4. Try accessing API directly via curl/Postman first', 'info');
+        showToast('Error', 'API connection failed. Check Activity Log for details.', 'error');
+    }
+    
+    log('========================================', 'info');
 }
 
 /**
@@ -773,6 +870,12 @@ function updateCartSummary() {
 async function processPayment() {
     if (state.cart.length === 0) {
         showToast('Error', 'Cart is empty', 'error');
+        return;
+    }
+    
+    // Check if using API connection
+    if (state.settings.connectionType === 'api') {
+        await processPaymentViaAPI();
         return;
     }
     
@@ -1037,6 +1140,7 @@ function closePaymentModal() {
         document.getElementById('paymentStatus').style.display = 'block';
         document.getElementById('paymentDetails').style.display = 'none';
         document.getElementById('paymentFooter').style.display = 'none';
+        document.getElementById('paymentFooter').innerHTML = '<button class="btn btn-primary" onclick="closePaymentModal()">Tutup</button>';
     }, 300);
 }
 
@@ -1047,6 +1151,270 @@ function updatePaymentStatus(status, message, detail) {
         <p class="status-message">${message}</p>
         <p class="status-detail">${detail}</p>
     `;
+}
+
+// ===== API Payment Processing =====
+async function processPaymentViaAPI() {
+    const actionType = document.getElementById('actionType')?.value || 'Sale';
+    const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked')?.value || 'purchase';
+    
+    // Show payment modal
+    showPaymentModal();
+    
+    // Calculate totals
+    const subtotal = state.cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+    const tax = Math.round(subtotal * 0.1);
+    const total = subtotal + tax;
+    
+    try {
+        // Validate API settings
+        if (!state.settings.mid || !state.settings.tid) {
+            throw new Error('MID and TID must be configured in Settings for API connection');
+        }
+        
+        updatePaymentStatus('building', 'Building transaction payload...', 'Preparing API request');
+        
+        // Build payload
+        let payload;
+        switch (actionType) {
+            case 'Sale':
+                payload = PayloadBuilder.buildSale(total, paymentMethod);
+                break;
+            case 'Contactless':
+                payload = PayloadBuilder.buildContactless(total);
+                break;
+            case 'CardVerification':
+                payload = PayloadBuilder.buildCardVerification(total);
+                break;
+            case 'Cicilan':
+                const plan = document.getElementById('cicilanPlan')?.value || '001';
+                const periode = document.getElementById('cicilanPeriode')?.value || '03';
+                payload = PayloadBuilder.buildCicilan(total, plan, periode);
+                break;
+            default:
+                payload = PayloadBuilder.buildSale(total, paymentMethod);
+        }
+        
+        log(`Building ${actionType} payload for API with method: ${payload.method || 'purchase'}`, 'info');
+        
+        // Encrypt payload
+        updatePaymentStatus('encrypting', 'Encrypting payload...', 'Using AES/ECB/PKCS5Padding');
+        await sleep(500);
+        
+        const encryptedToken = ECREncryption.generateToken(payload);
+        
+        // Prepare API request
+        updatePaymentStatus('sending', 'Sending to API...', 'Waiting for middleware response');
+        
+        const apiUrl = `${state.settings.apiUrl}/api/v1/transaction`;
+        const requestBody = {
+            token: encryptedToken,
+            mid: state.settings.mid,
+            tid: state.settings.tid,
+            trx_id: payload.trx_id
+        };
+        
+        log(`API Request: ${apiUrl}`, 'info');
+        
+        // Send API request with CORS mode
+        log(`[DEBUG] Fetching: ${apiUrl}`, 'info');
+        log(`[DEBUG] Request body: ${JSON.stringify(requestBody).substring(0, 200)}...`, 'info');
+        
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            mode: 'cors',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(requestBody)
+        }).catch(err => {
+            // Network error handling
+            log(`[DEBUG] Fetch error: ${err.name} - ${err.message}`, 'error');
+            log(`[DEBUG] Error stack: ${err.stack}`, 'error');
+            
+            if (err.name === 'TypeError') {
+                throw new Error(`Network error: ${err.message}. This is usually caused by:
+1. CORS policy blocking the request (check browser console for CORS errors)
+2. API server not running at ${apiUrl}
+3. Firewall blocking the connection
+
+Check browser DevTools (F12) → Console → look for CORS errors.`);
+            }
+            throw err;
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            const errorMsg = errorData.error || `API Error: ${response.status}`;
+            
+            // Check if it's a timeout (504 status OR "timeout" in error message)
+            const isTimeout = response.status === 504 || errorMsg.toLowerCase().includes('timeout');
+            
+            if (isTimeout) {
+                log(`⏱️ Transaction timeout for trx_id: ${payload.trx_id}`, 'warning');
+                showToast('Timeout', 'EDC tidak merespon dalam waktu yang ditentukan', 'warning');
+                
+                const statusEl = document.getElementById('paymentStatus');
+                const detailsEl = document.getElementById('paymentDetails');
+                const footerEl = document.getElementById('paymentFooter');
+                
+                statusEl.style.display = 'none';
+                detailsEl.style.display = 'block';
+                footerEl.style.display = 'flex';
+                
+                detailsEl.innerHTML = `
+                    <div class="payment-result error">
+                        <div class="result-title error">
+                            <i class="fas fa-clock"></i> Transaction Timeout
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">Transaction ID</span>
+                            <span class="result-value">${payload.trx_id}</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">Error</span>
+                            <span class="result-value" style="color: var(--danger-color);">${errorMsg}</span>
+                        </div>
+                        <p style="margin-top: 1rem; font-size: 0.875rem; color: var(--gray-600);">
+                            Transaksi mungkin masih diproses di EDC. Gunakan tombol di bawah untuk cek status transaksi.
+                        </p>
+                    </div>
+                `;
+                
+                footerEl.innerHTML = `
+                    <button class="btn btn-outline" onclick="closePaymentModal()">Tutup</button>
+                    <button class="btn btn-primary" onclick="checkTransactionStatus('${payload.trx_id}')">
+                        <i class="fas fa-search"></i> Cek Status Transaksi
+                    </button>
+                `;
+                return;
+            }
+            
+            throw new Error(errorMsg);
+        }
+        
+        const responseData = await response.json();
+        
+        log(`API Response received: ${JSON.stringify(responseData)}`, 'received');
+        
+        // Handle response similar to WebSocket
+        handlePaymentResponse(responseData);
+        
+        // Clear cart on success
+        if (responseData.rc === '00' || responseData.status === 'success') {
+            clearCart();
+        }
+        
+    } catch (error) {
+        log(`API Payment error: ${error.message}`, 'error');
+        showToast('Error', error.message, 'error');
+        
+        // Show error in payment modal
+        const statusEl = document.getElementById('paymentStatus');
+        const detailsEl = document.getElementById('paymentDetails');
+        const footerEl = document.getElementById('paymentFooter');
+        
+        statusEl.style.display = 'none';
+        detailsEl.style.display = 'block';
+        footerEl.style.display = 'flex';
+        
+        detailsEl.innerHTML = `
+            <div class="payment-result error">
+                <div class="result-title error">
+                    <i class="fas fa-times-circle"></i> Transaction Failed
+                </div>
+                <div class="result-item">
+                    <span class="result-label">Error</span>
+                    <span class="result-value" style="color: var(--danger-color);">${error.message}</span>
+                </div>
+            </div>
+        `;
+        
+        footerEl.innerHTML = `<button class="btn btn-primary" onclick="closePaymentModal()">Tutup</button>`;
+    }
+}
+
+// ===== Check Transaction Status =====
+async function checkTransactionStatus(trxId) {
+    const detailsEl = document.getElementById('paymentDetails');
+    const footerEl = document.getElementById('paymentFooter');
+    
+    // Show loading state
+    detailsEl.innerHTML = `
+        <div style="text-align: center; padding: 2rem;">
+            <div class="spinner"></div>
+            <p style="margin-top: 1rem; color: var(--gray-600);">Mengecek status transaksi <strong>${trxId}</strong>...</p>
+        </div>
+    `;
+    footerEl.innerHTML = '';
+    
+    log(`Checking transaction status: ${trxId}`, 'info');
+    
+    try {
+        const apiUrl = `${state.settings.apiUrl}/api/v1/transaction/status/${trxId}`;
+        log(`GET ${apiUrl}`, 'info');
+        
+        const response = await fetch(apiUrl, {
+            method: 'GET',
+            mode: 'cors',
+            headers: { 'Accept': 'application/json' }
+        });
+        
+        const data = await response.json().catch(() => ({}));
+        
+        if (!response.ok) {
+            throw new Error(data.error || `Status check failed: ${response.status}`);
+        }
+        
+        log(`Status response: ${JSON.stringify(data)}`, 'received');
+        
+        // Display the status result
+        handlePaymentResponse(data);
+        
+        // Re-add the check status button in footer in case user wants to re-check
+        footerEl.style.display = 'flex';
+        const isSuccess = data.rc === '00' || data.status === 'success' || data.status === 'paid';
+        
+        if (isSuccess) {
+            footerEl.innerHTML = `<button class="btn btn-primary" onclick="closePaymentModal()">Tutup</button>`;
+            clearCart();
+        } else {
+            footerEl.innerHTML = `
+                <button class="btn btn-outline" onclick="closePaymentModal()">Tutup</button>
+                <button class="btn btn-primary" onclick="checkTransactionStatus('${trxId}')">
+                    <i class="fas fa-sync-alt"></i> Cek Ulang
+                </button>
+            `;
+        }
+        
+    } catch (error) {
+        log(`Status check error: ${error.message}`, 'error');
+        
+        detailsEl.innerHTML = `
+            <div class="payment-result error">
+                <div class="result-title error">
+                    <i class="fas fa-exclamation-triangle"></i> Gagal Cek Status
+                </div>
+                <div class="result-item">
+                    <span class="result-label">Transaction ID</span>
+                    <span class="result-value">${trxId}</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">Error</span>
+                    <span class="result-value" style="color: var(--danger-color);">${error.message}</span>
+                </div>
+            </div>
+        `;
+        
+        footerEl.style.display = 'flex';
+        footerEl.innerHTML = `
+            <button class="btn btn-outline" onclick="closePaymentModal()">Tutup</button>
+            <button class="btn btn-primary" onclick="checkTransactionStatus('${trxId}')">
+                <i class="fas fa-sync-alt"></i> Coba Lagi
+            </button>
+        `;
+    }
 }
 
 // ===== Action Type UI Update =====
@@ -1071,12 +1439,18 @@ function updateActionTypeUI() {
 
 // ===== Settings =====
 function saveSettingsToState() {
-    state.settings.protocol = document.querySelector('input[name="protocol"]:checked')?.value || 'wss';
+    state.settings.connectionType = document.querySelector('input[name="connectionType"]:checked')?.value || 'wss';
+    state.settings.protocol = state.settings.connectionType === 'api' ? 'api' : state.settings.connectionType;
     state.settings.edcSubdomain = document.getElementById('edcSubdomain')?.value || '';
     state.settings.edcPort = document.getElementById('edcPort')?.value || '6746';
     state.settings.posAddress = document.getElementById('posAddress')?.value || '172.0.0.1';
     state.settings.secretKey = document.getElementById('secretKey')?.value || 'ECR2022secretKey';
     state.settings.actionType = document.getElementById('defaultActionType')?.value || 'Sale';
+    
+    // API settings
+    state.settings.apiUrl = document.getElementById('apiUrl')?.value || 'https://development-ecrlink.pcsindonesia.com';
+    state.settings.mid = document.getElementById('mid')?.value || '';
+    state.settings.tid = document.getElementById('tid')?.value || '';
     
     // Save to localStorage
     localStorage.setItem('posSettings', JSON.stringify(state.settings));
@@ -1094,14 +1468,23 @@ function loadSettings() {
     }
     
     // Apply to form
-    const protocolRadio = document.querySelector(`input[name="protocol"][value="${state.settings.protocol}"]`);
-    if (protocolRadio) protocolRadio.checked = true;
+    const connectionType = state.settings.connectionType || 'wss';
+    const connectionTypeRadio = document.querySelector(`input[name="connectionType"][value="${connectionType}"]`);
+    if (connectionTypeRadio) connectionTypeRadio.checked = true;
     
     document.getElementById('edcSubdomain').value = state.settings.edcSubdomain || '';
     document.getElementById('edcPort').value = state.settings.edcPort;
     document.getElementById('posAddress').value = state.settings.posAddress;
     document.getElementById('secretKey').value = state.settings.secretKey;
     document.getElementById('defaultActionType').value = state.settings.actionType;
+    
+    // API settings
+    document.getElementById('apiUrl').value = state.settings.apiUrl || 'https://development-ecrlink.pcsindonesia.com';
+    document.getElementById('mid').value = state.settings.mid || '';
+    document.getElementById('tid').value = state.settings.tid || '';
+    
+    // Update visibility of fields based on connection type
+    updateConnectionFields();
 }
 
 function saveSettings(event) {
@@ -1109,6 +1492,78 @@ function saveSettings(event) {
     saveSettingsToState();
     log('Settings saved', 'success');
     showToast('Success', 'Settings saved successfully', 'success');
+}
+
+// ===== Encryption Test Function =====
+function testEncryptionComparison() {
+    // Test payload - exact same as user provided
+    const testPayload = {
+        "amount": 1,
+        "action": "Sale",
+        "trx_id": "TXNMMP1DWPCGEIOBK",
+        "pos_address": "172.0.0.1",
+        "time_stamp": "2026-03-13 22:13:24",
+        "method": "qris"
+    };
+    
+    log('========================================', 'info');
+    log('🔐 ENCRYPTION COMPARISON TEST', 'info');
+    log('========================================', 'info');
+    log(`Test Payload: ${JSON.stringify(testPayload)}`, 'info');
+    log('', 'info');
+    
+    // Test 1: Simulate WSS encryption
+    log('--- TEST 1: WSS Path Simulation ---', 'info');
+    const tokenWSS = ECREncryption.generateToken(testPayload);
+    log(`[WSS] Token: ${tokenWSS}`, 'info');
+    log('', 'info');
+    
+    // Test 2: Simulate API encryption (same function!)
+    log('--- TEST 2: API Path Simulation ---', 'info');
+    const tokenAPI = ECREncryption.generateToken(testPayload);
+    log(`[API] Token: ${tokenAPI}`, 'info');
+    log('', 'info');
+    
+    // Comparison
+    log('--- COMPARISON ---', 'info');
+    const areEqual = tokenWSS === tokenAPI;
+    log(`Tokens are IDENTICAL: ${areEqual ? '✅ YES' : '❌ NO'}`, areEqual ? 'success' : 'error');
+    
+    if (!areEqual) {
+        log(`Length WSS: ${tokenWSS.length}`, 'info');
+        log(`Length API: ${tokenAPI.length}`, 'info');
+    }
+    
+    log('', 'info');
+    log(`Token Length: ${tokenWSS.length} characters`, 'info');
+    log(`Secret Key Used: ${state.settings.secretKey || 'ECR2022secretKey'}`, 'info');
+    log('========================================', 'info');
+    
+    return { wss: tokenWSS, api: tokenAPI, equal: areEqual };
+}
+
+// Make it available globally for console testing
+window.testEncryptionComparison = testEncryptionComparison;
+
+// ===== Connection Type Toggle =====
+function updateConnectionFields() {
+    const connectionType = document.querySelector('input[name="connectionType"]:checked')?.value || 'wss';
+    const directEdcFields = document.getElementById('directEdcFields');
+    const apiFields = document.getElementById('apiFields');
+    const domainModeBanner = document.getElementById('domainModeBanner');
+    const apiModeBanner = document.getElementById('apiModeBanner');
+    
+    if (connectionType === 'api') {
+        directEdcFields.style.display = 'none';
+        apiFields.style.display = 'block';
+        if (domainModeBanner) domainModeBanner.style.display = 'none';
+        if (apiModeBanner) apiModeBanner.style.display = 'block';
+    } else {
+        directEdcFields.style.display = 'block';
+        apiFields.style.display = 'none';
+        if (domainModeBanner) domainModeBanner.style.display = 'block';
+        if (apiModeBanner) apiModeBanner.style.display = 'none';
+    }
 }
 
 // ===== Utilities =====

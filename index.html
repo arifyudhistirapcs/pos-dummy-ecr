@@ -218,7 +218,7 @@
                         </div>
                         <div class="card-body">
                             <!-- Domain Mode Banner -->
-                            <div class="alert alert-success" style="background: #f0fdf4; border: 1px solid #22c55e; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
+                            <div id="domainModeBanner" class="alert alert-success" style="background: #f0fdf4; border: 1px solid #22c55e; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
                                 <div style="display: flex; align-items: flex-start; gap: 0.75rem;">
                                     <i class="fas fa-check-circle" style="color: #22c55e; font-size: 1.25rem; margin-top: 0.125rem;"></i>
                                     <div>
@@ -241,35 +241,101 @@
                                     </div>
                                 </div>
                             </div>
+
+                            <!-- API Mode Banner -->
+                            <div id="apiModeBanner" style="display: none; background: #eff6ff; border: 1px solid #3b82f6; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
+                                <div style="display: flex; align-items: flex-start; gap: 0.75rem;">
+                                    <i class="fas fa-cloud" style="color: #3b82f6; font-size: 1.25rem; margin-top: 0.125rem;"></i>
+                                    <div>
+                                        <strong style="color: #1e40af;">MODE API MIDDLEWARE</strong>
+                                        <p style="color: #1e3a5f; margin: 0.5rem 0 0 0; font-size: 0.875rem;">
+                                            Transaksi dikirim melalui <strong>middleware API</strong> ke EDC via Ably realtime messaging.
+                                            Tidak perlu koneksi langsung ke EDC dari browser.
+                                        </p>
+                                        <div style="margin-top: 0.75rem; padding: 0.75rem; background: white; border-radius: 6px;">
+                                            <strong style="color: #1e40af;">Panduan Setup:</strong>
+                                            <ol style="margin: 0.5rem 0 0 0; padding-left: 1.25rem; color: #1e3a5f; font-size: 0.8125rem; line-height: 1.8;">
+                                                <li>Isi <strong>API Base URL</strong>: <code>https://development-ecrlink.pcsindonesia.com</code></li>
+                                                <li>Isi <strong>MID</strong> (Merchant ID) dan <strong>TID</strong> (Terminal ID) yang sudah terdaftar di middleware</li>
+                                                <li>Klik <strong>Test Connection</strong> untuk memastikan middleware aktif</li>
+                                                <li>Lakukan transaksi — POS akan mengirim request ke middleware, lalu middleware meneruskan ke EDC via Ably</li>
+                                            </ol>
+                                        </div>
+                                        <div style="margin-top: 0.75rem; padding: 0.75rem; background: #fef3c7; border: 1px solid #f59e0b; border-radius: 6px;">
+                                            <strong style="color: #92400e;">⚠️ Catatan Penting:</strong>
+                                            <ul style="margin: 0.5rem 0 0 0; padding-left: 1.25rem; color: #78350f; font-size: 0.8125rem; line-height: 1.6;">
+                                                <li>MID/TID harus sudah terdaftar di middleware sebelum bisa mengirim transaksi</li>
+                                                <li>Timeout default: <strong>60 detik</strong> — jika EDC tidak merespon, middleware mengembalikan error 504</li>
+                                                <li>Token transaksi dienkripsi otomatis menggunakan AES-128-ECB (sama seperti mode WebSocket)</li>
+                                            </ul>
+                                        </div>
+                                        <div style="margin-top: 0.75rem; padding: 0.75rem; background: white; border-radius: 6px;">
+                                            <strong style="color: #1e40af;">Flow Transaksi:</strong>
+                                            <p style="margin: 0.5rem 0 0 0; font-size: 0.8125rem; color: #1e3a5f; font-family: monospace; line-height: 1.6;">
+                                                POS → POST /api/v1/transaction → Middleware → Ably → EDC → Ably → Middleware → Response ke POS
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                             
                             <form id="settingsForm" onsubmit="saveSettings(event)">
                                 <div class="form-group">
-                                    <label>Protocol</label>
-                                    <div class="radio-group">
+                                    <label>Connection Type</label>
+                                    <div class="radio-group" style="flex-direction: column; align-items: flex-start; gap: 0.5rem;">
                                         <label class="radio-label">
-                                            <input type="radio" name="protocol" value="ws" checked>
-                                            <span>WS (ws://)</span>
+                                            <input type="radio" name="connectionType" value="wss" checked onchange="updateConnectionFields()">
+                                            <span>WSS (WebSocket Secure) - Direct EDC</span>
                                         </label>
                                         <label class="radio-label">
-                                            <input type="radio" name="protocol" value="wss">
-                                            <span>WSS (wss://) - Secure</span>
+                                            <input type="radio" name="connectionType" value="ws" onchange="updateConnectionFields()">
+                                            <span>WS (WebSocket) - Direct EDC</span>
+                                        </label>
+                                        <label class="radio-label">
+                                            <input type="radio" name="connectionType" value="api" onchange="updateConnectionFields()">
+                                            <span>API (Middleware) - Via Ably Realtime Messaging</span>
                                         </label>
                                     </div>
                                 </div>
                                 
-                                <div class="form-group">
-                                    <label for="edcSubdomain">Subdomain EDC</label>
-                                    <div class="input-group" style="display: flex; align-items: stretch;">
-                                        <input type="text" id="edcSubdomain" placeholder="store001" required style="border-radius: var(--border-radius) 0 0 var(--border-radius); border-right: none;">
-                                        <span class="input-suffix" style="background: var(--gray-100); border: 1px solid var(--gray-300); border-left: none; padding: 0.625rem 0.875rem; border-radius: 0 var(--border-radius) var(--border-radius) 0; color: var(--gray-600); font-size: 0.875rem; white-space: nowrap;">.pcsindonesia.com</span>
+                                <!-- Direct EDC Fields -->
+                                <div id="directEdcFields">
+                                    <div class="form-group">
+                                        <label for="edcSubdomain">Subdomain EDC</label>
+                                        <div class="input-group" style="display: flex; align-items: stretch;">
+                                            <input type="text" id="edcSubdomain" placeholder="store001" style="border-radius: var(--border-radius) 0 0 var(--border-radius); border-right: none;">
+                                            <span class="input-suffix" style="background: var(--gray-100); border: 1px solid var(--gray-300); border-left: none; padding: 0.625rem 0.875rem; border-radius: 0 var(--border-radius) var(--border-radius) 0; color: var(--gray-600); font-size: 0.875rem; white-space: nowrap;">.pcsindonesia.com</span>
+                                        </div>
+                                        <small class="form-hint">Contoh: store001, edc-jkt-001 (sesuai penamaan toko Anda)</small>
                                     </div>
-                                    <small class="form-hint">Contoh: store001, edc-jkt-001 (sesuai penamaan toko Anda)</small>
+                                    
+                                    <div class="form-group">
+                                        <label for="edcPort">Port</label>
+                                        <input type="number" id="edcPort" value="6746" placeholder="6745 untuk WS, 6746 untuk WSS">
+                                        <small class="form-hint">Default: 6745 (WS), 6746 (WSS) - Sesuaikan dengan ECR Link</small>
+                                    </div>
                                 </div>
                                 
-                                <div class="form-group">
-                                    <label for="edcPort">Port</label>
-                                    <input type="number" id="edcPort" value="6746" placeholder="6745 untuk WS, 6746 untuk WSS">
-                                    <small class="form-hint">Default: 6745 (WS), 6746 (WSS) - Sesuaikan dengan ECR Link</small>
+                                <!-- API Fields -->
+                                <div id="apiFields" style="display: none;">
+                                    <div class="form-group">
+                                        <label for="apiUrl">API Base URL</label>
+                                        <input type="text" id="apiUrl" placeholder="https://development-ecrlink.pcsindonesia.com" value="https://development-ecrlink.pcsindonesia.com">
+                                        <small class="form-hint">Base URL middleware API (default: https://development-ecrlink.pcsindonesia.com)</small>
+                                    </div>
+                                    
+                                    <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label for="mid">Merchant ID (MID)</label>
+                                            <input type="text" id="mid" placeholder="1999115921">
+                                            <small class="form-hint">MID untuk transaksi API</small>
+                                        </div>
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label for="tid">Terminal ID (TID)</label>
+                                            <input type="text" id="tid" placeholder="10747684">
+                                            <small class="form-hint">TID untuk transaksi API</small>
+                                        </div>
+                                    </div>
                                 </div>
                                 
                                 <div class="form-group">
@@ -308,6 +374,10 @@
                                         <i class="fas fa-network-wired"></i>
                                         <span>Setup DNS Hosts</span>
                                     </button>
+                                    <button type="button" class="btn btn-secondary" onclick="testEncryptionComparison()">
+                                        <i class="fas fa-lock"></i>
+                                        <span>Test Encryption</span>
+                                    </button>
                                 </div>
                             </form>
                         </div>
@@ -324,8 +394,16 @@
                                     <span class="info-value" id="infoStatus">Disconnected</span>
                                 </div>
                                 <div class="info-item">
-                                    <span class="info-label">WebSocket URL</span>
+                                    <span class="info-label">Connection Type</span>
+                                    <span class="info-value" id="infoConnectionType">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label" id="infoUrlLabel">WebSocket URL</span>
                                     <span class="info-value" id="infoUrl">-</span>
+                                </div>
+                                <div class="info-item" id="infoMidTidRow" style="display: none;">
+                                    <span class="info-label">MID / TID</span>
+                                    <span class="info-value" id="infoMidTid">-</span>
                                 </div>
                                 <div class="info-item">
                                     <span class="info-label">Last Connected</span>
