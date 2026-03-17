@@ -374,6 +374,22 @@ const PayloadBuilder = {
     },
 
     /**
+     * Build Settlement payload
+     * action: "Settlement"
+     * method: "purchase" | "brizzi"
+     */
+    buildSettlement(method = 'purchase') {
+        return {
+            amount: '0',
+            action: 'Settlement',
+            trx_id: this.generateTrxId(),
+            pos_address: state.settings.posAddress,
+            time_stamp: this.getTimestamp(),
+            method: method
+        };
+    },
+
+    /**
      * Build Check Status QR payload
      * action: "Check Status"
      * method: "qris"
@@ -863,12 +879,16 @@ function updateCartSummary() {
     document.getElementById('total').textContent = `Rp ${formatPrice(total)}`;
     
     // Enable/disable pay button
-    document.getElementById('payBtn').disabled = state.cart.length === 0;
+    const actionType = document.getElementById('actionType')?.value || 'Sale';
+    document.getElementById('payBtn').disabled = actionType !== 'Settlement' && state.cart.length === 0;
 }
 
 // ===== Payment Processing =====
 async function processPayment() {
-    if (state.cart.length === 0) {
+    const actionType = document.getElementById('actionType')?.value || 'Sale';
+    
+    // Settlement doesn't require cart items
+    if (actionType !== 'Settlement' && state.cart.length === 0) {
         showToast('Error', 'Cart is empty', 'error');
         return;
     }
@@ -920,6 +940,9 @@ async function processPayment() {
                 const plan = document.getElementById('cicilanPlan')?.value || '001';
                 const periode = document.getElementById('cicilanPeriode')?.value || '03';
                 payload = PayloadBuilder.buildCicilan(total, plan, periode);
+                break;
+            case 'Settlement':
+                payload = PayloadBuilder.buildSettlement(paymentMethod);
                 break;
             default:
                 payload = PayloadBuilder.buildSale(total, paymentMethod);
@@ -1191,6 +1214,9 @@ async function processPaymentViaAPI() {
                 const periode = document.getElementById('cicilanPeriode')?.value || '03';
                 payload = PayloadBuilder.buildCicilan(total, plan, periode);
                 break;
+            case 'Settlement':
+                payload = PayloadBuilder.buildSettlement(paymentMethod);
+                break;
             default:
                 payload = PayloadBuilder.buildSale(total, paymentMethod);
         }
@@ -1434,6 +1460,22 @@ function updateActionTypeUI() {
     if (actionType === 'Sale') {
         paymentMethodSection.style.display = 'block';
         cicilanOptions.style.display = 'none';
+        // Show all payment methods
+        document.querySelectorAll('input[name="paymentMethod"]').forEach(r => {
+            r.closest('.payment-method').style.display = '';
+        });
+    } else if (actionType === 'Settlement') {
+        paymentMethodSection.style.display = 'block';
+        cicilanOptions.style.display = 'none';
+        // Only show purchase and brizzi for settlement
+        document.querySelectorAll('input[name="paymentMethod"]').forEach(r => {
+            const show = r.value === 'purchase' || r.value === 'brizzi';
+            r.closest('.payment-method').style.display = show ? '' : 'none';
+            if (!show && r.checked) {
+                // Reset to purchase if currently selected method is hidden
+                document.querySelector('input[name="paymentMethod"][value="purchase"]').checked = true;
+            }
+        });
     } else if (actionType === 'Cicilan') {
         paymentMethodSection.style.display = 'none';
         cicilanOptions.style.display = 'block';
@@ -1441,6 +1483,19 @@ function updateActionTypeUI() {
         // Contactless, CardVerification - only support purchase method
         paymentMethodSection.style.display = 'none';
         cicilanOptions.style.display = 'none';
+    }
+    
+    // Update pay button state (Settlement doesn't require cart items)
+    updateCartSummary();
+    
+    // Update pay button label
+    const payBtn = document.getElementById('payBtn');
+    if (actionType === 'Settlement') {
+        payBtn.querySelector('span').textContent = 'Settlement Sekarang';
+        payBtn.querySelector('i').className = 'fas fa-file-invoice-dollar';
+    } else {
+        payBtn.querySelector('span').textContent = 'Bayar Sekarang';
+        payBtn.querySelector('i').className = 'fas fa-check-circle';
     }
 }
 
