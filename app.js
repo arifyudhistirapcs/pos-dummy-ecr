@@ -1263,9 +1263,12 @@ async function processPaymentViaAPI() {
         
         log(`API Request: ${apiUrl}`, 'info');
         
-        // Send API request with CORS mode
+        // Send API request with CORS mode and 10s timeout
         log(`[DEBUG] Fetching: ${apiUrl}`, 'info');
         log(`[DEBUG] Request body: ${JSON.stringify(requestBody).substring(0, 200)}...`, 'info');
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
         
         const response = await fetch(apiUrl, {
             method: 'POST',
@@ -1274,8 +1277,16 @@ async function processPaymentViaAPI() {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
             },
-            body: JSON.stringify(requestBody)
+            body: JSON.stringify(requestBody),
+            signal: controller.signal
         }).catch(err => {
+            clearTimeout(timeoutId);
+            
+            // Handle abort (timeout from POS side)
+            if (err.name === 'AbortError') {
+                throw new Error('POS timeout: middleware tidak merespon dalam 10 detik');
+            }
+            
             // Network error handling
             log(`[DEBUG] Fetch error: ${err.name} - ${err.message}`, 'error');
             log(`[DEBUG] Error stack: ${err.stack}`, 'error');
@@ -1290,6 +1301,8 @@ Check browser DevTools (F12) → Console → look for CORS errors.`);
             }
             throw err;
         });
+        
+        clearTimeout(timeoutId);
         
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
