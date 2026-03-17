@@ -402,6 +402,22 @@ const PayloadBuilder = {
             time_stamp: this.getTimestamp(),
             method: 'qris'
         };
+    },
+
+    /**
+     * Build QRIS TAP payload
+     * action: "Sale"
+     * method: "qris_tap"
+     */
+    buildQrisTap(amount) {
+        return {
+            amount: amount,
+            action: 'Sale',
+            trx_id: this.generateTrxId(),
+            pos_address: state.settings.posAddress,
+            time_stamp: this.getTimestamp(),
+            method: 'qris_tap'
+        };
     }
 };
 
@@ -943,6 +959,9 @@ async function processPayment() {
             case 'Settlement':
                 payload = PayloadBuilder.buildSettlement(paymentMethod);
                 break;
+            case 'QrisTap':
+                payload = PayloadBuilder.buildQrisTap(total);
+                break;
             default:
                 payload = PayloadBuilder.buildSale(total, paymentMethod);
         }
@@ -1216,6 +1235,9 @@ async function processPaymentViaAPI() {
             case 'Settlement':
                 payload = PayloadBuilder.buildSettlement(paymentMethod);
                 break;
+            case 'QrisTap':
+                payload = PayloadBuilder.buildQrisTap(total);
+                break;
             default:
                 payload = PayloadBuilder.buildSale(total, paymentMethod);
         }
@@ -1471,10 +1493,12 @@ function updateActionTypeUI() {
             const show = r.value === 'purchase' || r.value === 'brizzi';
             r.closest('.payment-method').style.display = show ? '' : 'none';
             if (!show && r.checked) {
-                // Reset to purchase if currently selected method is hidden
                 document.querySelector('input[name="paymentMethod"][value="purchase"]').checked = true;
             }
         });
+    } else if (actionType === 'QrisTap') {
+        paymentMethodSection.style.display = 'none';
+        cicilanOptions.style.display = 'none';
     } else if (actionType === 'Cicilan') {
         paymentMethodSection.style.display = 'none';
         cicilanOptions.style.display = 'block';
@@ -1492,6 +1516,9 @@ function updateActionTypeUI() {
     if (actionType === 'Settlement') {
         payBtn.querySelector('span').textContent = 'Settlement Sekarang';
         payBtn.querySelector('i').className = 'fas fa-file-invoice-dollar';
+    } else if (actionType === 'QrisTap') {
+        payBtn.querySelector('span').textContent = 'Bayar via QRIS TAP';
+        payBtn.querySelector('i').className = 'fas fa-mobile-alt';
     } else {
         payBtn.querySelector('span').textContent = 'Bayar Sekarang';
         payBtn.querySelector('i').className = 'fas fa-check-circle';

@@ -118,6 +118,7 @@
                                     <option value="CardVerification">Card Verification</option>
                                     <option value="Cicilan">Cicilan (Installment)</option>
                                     <option value="Settlement">Settlement (Purchase / Brizzi)</option>
+                                    <option value="QrisTap">QRIS TAP</option>
                                 </select>
                             </div>
                             
@@ -143,6 +144,13 @@
                                         <div class="payment-card">
                                             <i class="fas fa-qrcode"></i>
                                             <span>QRIS</span>
+                                        </div>
+                                    </label>
+                                    <label class="payment-method">
+                                        <input type="radio" name="paymentMethod" value="qris_tap">
+                                        <div class="payment-card">
+                                            <i class="fas fa-mobile-alt"></i>
+                                            <span>QRIS TAP</span>
                                         </div>
                                     </label>
                                 </div>
@@ -359,6 +367,7 @@
                                         <option value="CardVerification">Card Verification</option>
                                         <option value="Cicilan">Cicilan</option>
                                         <option value="Settlement">Settlement</option>
+                                        <option value="QrisTap">QRIS TAP</option>
                                     </select>
                                     <small class="form-hint">Tipe transaksi default saat pembayaran</small>
                                 </div>
