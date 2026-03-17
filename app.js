@@ -899,8 +899,7 @@ async function processPayment() {
         return;
     }
     
-    // Get action type and payment method
-    const actionType = document.getElementById('actionType')?.value || 'Sale';
+    // Get payment method
     const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked')?.value || 'purchase';
     
     // Show payment modal
