@@ -1302,7 +1302,7 @@ Check browser DevTools (F12) → Console → look for CORS errors.`);
         handlePaymentResponse(responseData);
         
         // Clear cart on success
-        if (responseData.rc === '00' || responseData.status === 'success') {
+        if (responseData.rc === '00' || responseData.status?.toLowerCase() === 'success' || responseData.status?.toLowerCase() === 'paid') {
             clearCart();
         }
         
