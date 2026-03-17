@@ -993,8 +993,8 @@ function handlePaymentResponse(response) {
     
     // Check if it's a success response (rc: "00" or status: "success"/"paid")
     const isSuccess = response.rc === '00' || 
-                      response.status === 'success' || 
-                      response.status === 'paid' ||
+                      response.status?.toLowerCase() === 'success' || 
+                      response.status?.toLowerCase() === 'paid' ||
                       response.success === true;
     
     if (isSuccess) {
@@ -1369,12 +1369,19 @@ async function checkTransactionStatus(trxId) {
         
         log(`Status response: ${JSON.stringify(data)}`, 'received');
         
+        // Extract the transaction data from the wrapper response.
+        // Middleware returns {status: "SUCCESS", data: {rc, status, trx_id, ...}}
+        const txnData = data.data || data;
+        
         // Display the status result
-        handlePaymentResponse(data);
+        handlePaymentResponse(txnData);
         
         // Re-add the check status button in footer in case user wants to re-check
         footerEl.style.display = 'flex';
-        const isSuccess = data.rc === '00' || data.status === 'success' || data.status === 'paid';
+        const isSuccess = txnData.rc === '00' || 
+                          txnData.status?.toLowerCase() === 'success' || 
+                          txnData.status?.toLowerCase() === 'paid' ||
+                          data.status?.toUpperCase() === 'SUCCESS';
         
         if (isSuccess) {
             footerEl.innerHTML = `<button class="btn btn-primary" onclick="closePaymentModal()">Tutup</button>`;
