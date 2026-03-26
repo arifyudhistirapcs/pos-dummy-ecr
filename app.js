@@ -1268,7 +1268,7 @@ async function processPaymentViaAPI() {
         log(`[DEBUG] Request body: ${JSON.stringify(requestBody).substring(0, 200)}...`, 'info');
         
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 60000);
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
         
         const response = await fetch(apiUrl, {
             method: 'POST',
@@ -1284,7 +1284,7 @@ async function processPaymentViaAPI() {
             
             // Handle abort (timeout from POS side)
             if (err.name === 'AbortError') {
-                throw new Error('POS timeout: middleware tidak merespon dalam 60 detik');
+                throw new Error('POS timeout: middleware tidak merespon dalam 10 detik');
             }
             
             // Network error handling
