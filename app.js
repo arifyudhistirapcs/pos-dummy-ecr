@@ -1379,19 +1379,53 @@ Check browser DevTools (F12) → Console → look for CORS errors.`);
         detailsEl.style.display = 'block';
         footerEl.style.display = 'flex';
         
-        detailsEl.innerHTML = `
-            <div class="payment-result error">
-                <div class="result-title error">
-                    <i class="fas fa-times-circle"></i> Transaction Failed
-                </div>
-                <div class="result-item">
-                    <span class="result-label">Error</span>
-                    <span class="result-value" style="color: var(--danger-color);">${error.message}</span>
-                </div>
-            </div>
-        `;
+        // Check if this is a POS-side timeout (AbortError)
+        const isPosTimeout = error.message.includes('POS timeout');
         
-        footerEl.innerHTML = `<button class="btn btn-primary" onclick="closePaymentModal()">Tutup</button>`;
+        if (isPosTimeout) {
+            detailsEl.innerHTML = `
+                <div class="payment-result error">
+                    <div class="result-title error">
+                        <i class="fas fa-clock"></i> Transaction Timeout
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">Transaction ID</span>
+                        <span class="result-value">${payload.trx_id}</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">Error</span>
+                        <span class="result-value" style="color: var(--danger-color);">${error.message}</span>
+                    </div>
+                    <p style="margin-top: 1rem; font-size: 0.875rem; color: var(--gray-600);">
+                        Transaksi mungkin masih diproses di EDC. Coba retry atau cek status transaksi.
+                    </p>
+                </div>
+            `;
+            
+            footerEl.innerHTML = `
+                <button class="btn btn-outline" onclick="closePaymentModal()">Tutup</button>
+                <button class="btn btn-outline" onclick="checkTransactionStatus('${payload.trx_id}')">
+                    <i class="fas fa-search"></i> Cek Status
+                </button>
+                <button class="btn btn-primary" onclick="closePaymentModal(); setTimeout(() => document.getElementById('payBtn').click(), 300);">
+                    <i class="fas fa-redo"></i> Retry
+                </button>
+            `;
+        } else {
+            detailsEl.innerHTML = `
+                <div class="payment-result error">
+                    <div class="result-title error">
+                        <i class="fas fa-times-circle"></i> Transaction Failed
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">Error</span>
+                        <span class="result-value" style="color: var(--danger-color);">${error.message}</span>
+                    </div>
+                </div>
+            `;
+            
+            footerEl.innerHTML = `<button class="btn btn-primary" onclick="closePaymentModal()">Tutup</button>`;
+        }
     }
 }
 
