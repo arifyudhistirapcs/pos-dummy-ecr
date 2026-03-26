@@ -1381,8 +1381,9 @@ Check browser DevTools (F12) → Console → look for CORS errors.`);
         
         // Check if this is a POS-side timeout (AbortError)
         const isPosTimeout = error.message.includes('POS timeout');
+        const trxId = (typeof payload !== 'undefined' && payload && payload.trx_id) ? payload.trx_id : 'unknown';
         
-        if (isPosTimeout) {
+        if (isPosTimeout && trxId !== 'unknown') {
             detailsEl.innerHTML = `
                 <div class="payment-result error">
                     <div class="result-title error">
@@ -1390,7 +1391,7 @@ Check browser DevTools (F12) → Console → look for CORS errors.`);
                     </div>
                     <div class="result-item">
                         <span class="result-label">Transaction ID</span>
-                        <span class="result-value">${payload.trx_id}</span>
+                        <span class="result-value">${trxId}</span>
                     </div>
                     <div class="result-item">
                         <span class="result-label">Error</span>
@@ -1404,10 +1405,10 @@ Check browser DevTools (F12) → Console → look for CORS errors.`);
             
             footerEl.innerHTML = `
                 <button class="btn btn-outline" onclick="closePaymentModal()">Tutup</button>
-                <button class="btn btn-outline" onclick="checkTransactionStatus('${payload.trx_id}')">
+                <button class="btn btn-outline" onclick="checkTransactionStatus('${trxId}')">
                     <i class="fas fa-search"></i> Cek Status
                 </button>
-                <button class="btn btn-primary" onclick="closePaymentModal(); setTimeout(() => document.getElementById('payBtn').click(), 300);">
+                <button class="btn btn-primary" onclick="closePaymentModal(); setTimeout(function(){ document.getElementById('payBtn').click(); }, 300);">
                     <i class="fas fa-redo"></i> Retry
                 </button>
             `;
