@@ -221,35 +221,11 @@
             <!-- Tab: Settings -->
             <div class="tab-content" id="tab-settings">
                 <div class="settings-grid">
-                    <div class="card" style="border: 2px solid var(--success-color);">
-                        <div class="card-header" style="background: var(--success-light);">
-                            <h2>✅ Konfigurasi EDC Connection (Domain)</h2>
-                        </div>
+                    <div class="card" style="border: 1px solid var(--gray-300);">
+                        <div class="card-header">
+                        <h2>⚙️ Konfigurasi EDC Connection</h2>
+                    </div>
                         <div class="card-body">
-                            <!-- Domain Mode Banner -->
-                            <div id="domainModeBanner" class="alert alert-success" style="background: #f0fdf4; border: 1px solid #22c55e; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
-                                <div style="display: flex; align-items: flex-start; gap: 0.75rem;">
-                                    <i class="fas fa-check-circle" style="color: #22c55e; font-size: 1.25rem; margin-top: 0.125rem;"></i>
-                                    <div>
-                                        <strong style="color: #166534;">MODE DOMAIN (Recommended)</strong>
-                                        <p style="color: #14532d; margin: 0.5rem 0 0 0; font-size: 0.875rem;">
-                                            Gunakan <strong>subdomain *.pcsindonesia.com</strong> dengan sertifikat Sectigo wildcard.
-                                            Setiap toko menggunakan subdomain unik yang diarahkan ke IP EDC via hosts file.
-                                        </p>
-                                        <div style="margin-top: 0.75rem; padding: 0.75rem; background: white; border-radius: 6px;">
-                                            <strong style="color: #166534;">Contoh Setup:</strong>
-                                            <ul style="margin: 0.5rem 0 0 0; padding-left: 1.25rem; color: #14532d; font-size: 0.8125rem;">
-                                                <li>Toko 001: <code>edc-001.pcsindonesia.com</code> → 192.168.1.10</li>
-                                                <li>Toko 002: <code>edc-002.pcsindonesia.com</code> → 192.168.1.20</li>
-                                                <li>Semua subdomain trusted oleh browser (Sectigo SSL)</li>
-                                            </ul>
-                                        </div>
-                                        <p style="margin: 0.5rem 0 0 0; font-size: 0.75rem;">
-                                            <a href="#" onclick="showHostsSetup(); return false;" style="color: #2563eb;">📖 Panduan Setup DNS Hosts →</a>
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
 
                             <!-- API Mode Banner -->
                             <div id="apiModeBanner" style="display: none; background: #eff6ff; border: 1px solid #3b82f6; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
@@ -307,15 +283,11 @@
                                     </div>
                                 </div>
                                 
-                                <!-- Direct EDC Fields -->
                                 <div id="directEdcFields">
                                     <div class="form-group">
-                                        <label for="edcSubdomain">Subdomain EDC</label>
-                                        <div class="input-group" style="display: flex; align-items: stretch;">
-                                            <input type="text" id="edcSubdomain" placeholder="store001" style="border-radius: var(--border-radius) 0 0 var(--border-radius); border-right: none;">
-                                            <span class="input-suffix" style="background: var(--gray-100); border: 1px solid var(--gray-300); border-left: none; padding: 0.625rem 0.875rem; border-radius: 0 var(--border-radius) var(--border-radius) 0; color: var(--gray-600); font-size: 0.875rem; white-space: nowrap;">.pcsindonesia.com</span>
-                                        </div>
-                                        <small class="form-hint">Contoh: store001, edc-jkt-001 (sesuai penamaan toko Anda)</small>
+                                        <label for="edcIp">EDC IP Address</label>
+                                        <input type="text" id="edcIp" placeholder="192.168.1.10">
+                                        <small class="form-hint">Masukkan IP address EDC device</small>
                                     </div>
                                     
                                     <div class="form-group">
@@ -380,10 +352,6 @@
                                     <button type="button" class="btn btn-outline" onclick="testConnection()">
                                         <i class="fas fa-vial"></i>
                                         <span>Test Connection</span>
-                                    </button>
-                                    <button type="button" class="btn btn-info" onclick="showHostsSetup()">
-                                        <i class="fas fa-network-wired"></i>
-                                        <span>Setup DNS Hosts</span>
                                     </button>
                                     <button type="button" class="btn btn-secondary" onclick="testEncryptionComparison()">
                                         <i class="fas fa-lock"></i>
@@ -497,261 +465,6 @@
         </div>
     </div>
 
-        <!-- DNS Hosts Setup Modal -->
-    <div class="modal" id="hostsModal">
-        <div class="modal-overlay" onclick="closeHostsModal()"></div>
-        <div class="modal-content modal-large" style="max-width: 700px;">
-            <div class="modal-header">
-                <h3>🌐 Setup DNS Hosts</h3>
-                <button class="btn-close" onclick="closeHostsModal()">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="cert-setup-container">
-                    <!-- Info Box -->
-                    <div style="background: #f0fdf4; border: 1px solid #22c55e; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
-                        <strong style="color: #166534;">💡 Cara Kerja</strong>
-                        <p style="margin: 0.5rem 0 0 0; font-size: 0.875rem; color: #14532d;">
-                            Domain <code id="hostsModalDomain">[subdomain].pcsindonesia.com</code> perlu diarahkan ke IP EDC lokal toko Anda. 
-                            Gunakan script otomatis di bawah ini untuk setup.
-                        </p>
-                    </div>
-
-                    <!-- Step 1 -->
-                    <div class="cert-step">
-                        <div class="step-number">1</div>
-                        <div class="step-content">
-                            <h4>Cek IP EDC</h4>
-                            <p>Buka aplikasi <strong>ECR Link</strong> di EDC, catat IP address yang ditampilkan.</p>
-                            <div class="step-note" style="background: #fef3c7; border: 1px solid #f59e0b;">
-                                <i class="fas fa-exclamation-triangle" style="color: #f59e0b;"></i>
-                                <strong>PENTING:</strong> Pastikan IP EDC adalah <strong>STATIC IP</strong> (bukan DHCP). 
-                                Hubungi IT support jika perlu setting static IP.
-                            </div>
-                            <div class="step-note">
-                                <i class="fas fa-info-circle"></i>
-                                Contoh IP: <code>192.168.1.100</code>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Step 2: Windows -->
-                    <div class="cert-step">
-                        <div class="step-number">2</div>
-                        <div class="step-content">
-                            <h4>Download & Jalankan Script (Windows)</h4>
-                            <p>Download script setup untuk Windows:</p>
-                            <a href="setup-hosts-windows.bat" download class="btn btn-primary" style="margin: 0.5rem 0;">
-                                <i class="fas fa-download"></i> Download Script Windows (.bat)
-                            </a>
-                            <ol style="font-size: 0.875rem; color: var(--gray-700); line-height: 1.8; margin: 0.75rem 0 0 0;">
-                                <li>Download file <code>setup-hosts-windows.bat</code></li>
-                                <li>Klik kanan file → <strong>"Run as administrator"</strong></li>
-                                <li>Masukkan IP EDC saat diminta</li>
-                                <li>Ikuti instruksi di layar</li>
-                                <li>Script akan otomatis:
-                                    <ul style="margin-top: 0.25rem;">
-                                        <li>Backup file hosts</li>
-                                        <li>Tambahkan entry <code>[IP_EDC] [subdomain].pcsindonesia.com</code></li>
-                                        <li>Flush DNS cache</li>
-                                        <li>Test koneksi</li>
-                                    </ul>
-                                </li>
-                            </ol>
-                        </div>
-                    </div>
-
-                    <!-- Step 3: Mac/Linux -->
-                    <div class="cert-step">
-                        <div class="step-number">3</div>
-                        <div class="step-content">
-                            <h4>Download & Jalankan Script (Mac/Linux)</h4>
-                            <p>Download script setup untuk Mac/Linux:</p>
-                            <a href="setup-hosts-macos-linux.sh" download class="btn btn-primary" style="margin: 0.5rem 0;">
-                                <i class="fas fa-download"></i> Download Script Mac/Linux (.sh)
-                            </a>
-                            <ol style="font-size: 0.875rem; color: var(--gray-700); line-height: 1.8; margin: 0.75rem 0 0 0;">
-                                <li>Download file <code>setup-hosts-macos-linux.sh</code></li>
-                                <li>Buka Terminal</li>
-                                <li>Jalankan: <code style="background: #f3f4f6; padding: 0.125rem 0.375rem; border-radius: 4px;">sudo bash setup-hosts-macos-linux.sh</code></li>
-                                <li>Masukkan IP EDC saat diminta</li>
-                                <li>Ikuti instruksi di layar</li>
-                            </ol>
-                        </div>
-                    </div>
-
-                    <!-- Step 4: Android (Tablet POS) -->
-                    <div class="cert-step">
-                        <div class="step-number">4</div>
-                        <div class="step-content">
-                            <h4>Android Tablet POS (Tanpa Root)</h4>
-                            <p>Android tidak bisa edit hosts file tanpa root, gunakan salah satu solusi berikut:</p>
-                            
-                            <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 0.75rem; margin: 0.75rem 0;">
-                                <strong style="color: #92400e;">⚠️ Catatan Penting:</strong>
-                                <ul style="margin: 0.5rem 0 0 0; padding-left: 1.25rem; font-size: 0.8125rem; color: #78350f;">
-                                    <li>Browser Android strict terhadap SSL/HTTPS validation</li>
-                                    <li>HTTPS page tidak bisa connect ke WS/WSS dengan self-signed cert</li>
-                                    <li>Solusi: Gunakan HTTP (bukan HTTPS) atau DNS Resolver App</li>
-                                </ul>
-                            </div>
-
-                            <strong style="color: #166534;">✅ Solusi untuk Android Tablet POS:</strong>
-                            
-                            <div style="margin: 0.75rem 0; padding: 0.75rem; background: #f0fdf4; border: 1px solid #22c55e; border-radius: 8px;">
-                                <strong style="color: #166534;">Solusi 1: PersonalDNSfilter (Recommended)</strong>
-                                <div style="font-size: 0.875rem; color: var(--gray-700); line-height: 1.8; margin-top: 0.5rem;">
-                                    • Install <a href="https://play.google.com/store/apps/details?id=dnsfilter.android" target="_blank" style="color: #2563eb; text-decoration: underline;"><strong>PersonalDNSfilter</strong> dari Play Store</a><br>
-                                    • Buka aplikasi, berikan izin VPN<br>
-                                    • Tap <strong>"Advanced Settings"</strong> → <strong>"Configure Additional Hosts"</strong><br>
-                                    • Tambahkan entry: <code>[IP_EDC] [subdomain].pcsindonesia.com</code><br>
-                                    • Aktifkan toggle <strong>"Configure Additional Hosts"</strong><br>
-                                    • Kembali ke layar utama, tap tombol <strong>START</strong> (VPN aktif)<br>
-                                    • Buka browser, akses POS Dummy
-                                </div>
-                            </div>
-
-                            <div style="margin: 0.75rem 0; padding: 0.75rem; background: #faf5ff; border: 1px solid #a855f7; border-radius: 8px;">
-                                <strong style="color: #6b21a8;">Solusi 2: Router/Network DNS Setup</strong>
-                                <div style="font-size: 0.875rem; color: var(--gray-700); line-height: 1.8; margin-top: 0.5rem;">
-                                    • Akses admin panel router WiFi toko<br>
-                                    • Tambahkan DNS Static/Host Mapping: <code>[subdomain].pcsindonesia.com → [IP_EDC]</code><br>
-                                    • Semua device di network akan resolve domain ke IP EDC<br>
-                                    • Android tablet akan otomatis menggunakan DNS router
-                                </div>
-                            </div>
-
-                            <div style="margin: 0.75rem 0; padding: 0.75rem; background: #fff7ed; border: 1px solid #f97316; border-radius: 8px;">
-                                <strong style="color: #9a3412;">Solusi 3: WebView POS App (APK Custom)</strong>
-                                <div style="font-size: 0.875rem; color: var(--gray-700); line-height: 1.8; margin-top: 0.5rem;">
-                                    • Hubungi developer untuk build APK custom<br>
-                                    • APK menggunakan WebView dengan custom DNS resolver<br>
-                                    • Bisa bypass SSL validation untuk domain internal<br>
-                                    • Icon launcher dedicated untuk toko
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Step 5 -->
-                    <div class="cert-step">
-                        <div class="step-number">5</div>
-                        <div class="step-content">
-                            <h4>Test Koneksi</h4>
-                            <p>Setelah script selesai, test koneksi:</p>
-                            <ol style="font-size: 0.875rem; color: var(--gray-700); line-height: 1.8; margin: 0;">
-                                <li>Restart Google Chrome</li>
-                                <li>Buka Command Prompt / Terminal</li>
-                                <li>Ketik: <code>ping [subdomain].pcsindonesia.com</code></li>
-                                <li>Jika reply dari IP EDC, berarti sukses!</li>
-                            </ol>
-                        </div>
-                    </div>
-
-                    <!-- Help Box -->
-                    <div class="cert-help-box" style="background: #fef3c7; border-color: #f59e0b;">
-                        <h5 style="color: #92400e;"><i class="fas fa-lightbulb"></i> Tips</h5>
-                        <ul style="color: #78350f;">
-                            <li>Pastikan menjalankan script sebagai <strong>Administrator / sudo</strong></li>
-                            <li>Script akan membuat backup hosts file otomatis</li>
-                            <li>Jika ada masalah, backup file ada di lokasi yang sama dengan hosts file</li>
-                            <li><strong>Android Tablet POS:</strong> Gunakan <strong>PersonalDNSfilter</strong> (bisa download dari Play Store) atau setup DNS di router</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-outline" onclick="closeHostsModal()">Tutup</button>
-            </div>
-        </div>
-    </div>
-
-
-    <!-- Certificate Setup Modal (Backup - tetap ada untuk referensi) -->
-    <div class="modal" id="certificateModal">
-        <div class="modal-overlay" onclick="closeCertificateModal()"></div>
-        <div class="modal-content modal-large" style="max-width: 700px;">
-            <div class="modal-header">
-                <h3>🔒 Setup Sertifikat SSL (WSS)</h3>
-                <button class="btn-close" onclick="closeCertificateModal()">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="cert-setup-container">
-                    <!-- Step 1 -->
-                    <div class="cert-step" id="certStep1">
-                        <div class="step-number">1</div>
-                        <div class="step-content">
-                            <h4>Download Sertifikat</h4>
-                            <p>Download file sertifikat CA untuk di-install ke komputer Anda.</p>
-                            <button class="btn btn-primary" onclick="downloadCertificate()">
-                                <i class="fas fa-download"></i>
-                                Download Sertifikat CA
-                            </button>
-                            <div class="step-note">
-                                <i class="fas fa-info-circle"></i>
-                                File: <code>pcsindonesia_ca.crt</code>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Step 2 -->
-                    <div class="cert-step" id="certStep2">
-                        <div class="step-number">2</div>
-                        <div class="step-content">
-                            <h4>Install Sertifikat di Windows</h4>
-                            <div class="install-guide">
-                                <ol>
-                                    <li>Buka file sertifikat yang sudah di-download</li>
-                                    <li>Klik <strong>"Install Certificate..."</strong></li>
-                                    <li>Pilih <strong>"Local Machine"</strong> → Next</li>
-                                    <li>Pilih <strong>"Place all certificates in the following store"</strong></li>
-                                    <li>Klik <strong>Browse</strong> → Pilih <strong>"Trusted Root Certification Authorities"</strong></li>
-                                    <li>Next → Finish</li>
-                                    <li>Restart Google Chrome</li>
-                                </ol>
-                                <div class="guide-image">
-                                    <div class="image-placeholder">
-                                        <i class="fas fa-image"></i>
-                                        <span>Ilustrasi langkah install</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Step 3 -->
-                    <div class="cert-step" id="certStep3">
-                        <div class="step-number">3</div>
-                        <div class="step-content">
-                            <h4>Verifikasi Koneksi</h4>
-                            <p>Setelah install sertifikat, test koneksi ke EDC:</p>
-                            <button class="btn btn-success" onclick="verifyCertificate()">
-                                <i class="fas fa-check-circle"></i>
-                                Test Koneksi WSS
-                            </button>
-                            <div id="certVerifyResult" class="verify-result" style="margin-top: 1rem;"></div>
-                        </div>
-                    </div>
-
-                    <!-- Help Box -->
-                    <div class="cert-help-box">
-                        <h5><i class="fas fa-question-circle"></i> Butuh Bantuan?</h5>
-                        <ul>
-                            <li>Pastikan Anda menggunakan browser <strong>Google Chrome</strong></li>
-                            <li>Jika masih error, coba restart komputer setelah install sertifikat</li>
-                            <li>Pastikan IP EDC sudah benar di menu Pengaturan</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-outline" onclick="closeCertificateModal()">Tutup</button>
-            </div>
-        </div>
-    </div>
 
     <!-- Payment Processing Modal -->
     <div class="modal" id="paymentModal">

@@ -23,7 +23,7 @@ const state = {
     settings: {
         connectionType: 'wss',  // 'wss', 'ws', or 'api'
         protocol: 'wss',
-        edcSubdomain: '',  // User inputs subdomain (e.g., "store001")
+        edcIp: '',  // User inputs IP address directly (e.g., "192.168.1.10")
         edcPort: '6746',
         posAddress: '172.0.0.1',
         secretKey: 'ECR2022secretKey',
@@ -529,10 +529,10 @@ function updateInfoPanel() {
     } else {
         document.getElementById('infoUrlLabel').textContent = 'WebSocket URL';
         
-        // Show domain in info URL
+        // Show IP in info URL
         let displayUrl = state.connectionUrl || '-';
-        if (state.settings.edcSubdomain && !state.isConnected) {
-            displayUrl = `${state.settings.protocol}://${state.settings.edcSubdomain}.pcsindonesia.com:${state.settings.edcPort}`;
+        if (state.settings.edcIp && !state.isConnected) {
+            displayUrl = `${state.settings.protocol}://${state.settings.edcIp}:${state.settings.edcPort}`;
         }
         document.getElementById('infoUrl').textContent = displayUrl;
         
@@ -554,33 +554,27 @@ function toggleConnection() {
 }
 
 async function connectToEDC() {
-    const subdomain = state.settings.edcSubdomain;
+    const ip = state.settings.edcIp;
     
-    if (!subdomain) {
-        showToast('Error', 'Please configure EDC Subdomain in Settings', 'error');
+    if (!ip) {
+        showToast('Error', 'Please configure EDC IP Address in Settings', 'error');
         switchTab('settings');
         return;
     }
     
-    // Construct full domain
-    const domain = `${subdomain}.pcsindonesia.com`;
-    
     const protocol = state.settings.protocol;
     const port = state.settings.edcPort || (protocol === 'wss' ? '6746' : '6745');
-    const url = `${protocol}://${domain}:${port}`;
+    const url = `${protocol}://${ip}:${port}`;
     
     state.connectionUrl = url;
     
     log('========================================', 'info');
     log(`🚀 Starting connection attempt`, 'info');
     log(`📡 Protocol: ${protocol.toUpperCase()}`, 'info');
-    log(`🌐 Domain: ${domain}`, 'info');
+    log(`🌐 IP: ${ip}`, 'info');
     log(`🔌 Port: ${port}`, 'info');
     log(`🔗 Full URL: ${url}`, 'info');
     log('========================================', 'info');
-    
-    // Check if using domain mode (recommended)
-    log('✅ Using domain mode (Sectigo SSL) - Certificate should be trusted', 'success');
     
     try {
         await ecrWs.connect(url);
@@ -1577,7 +1571,7 @@ function updateActionTypeUI() {
 function saveSettingsToState() {
     state.settings.connectionType = document.querySelector('input[name="connectionType"]:checked')?.value || 'wss';
     state.settings.protocol = state.settings.connectionType === 'api' ? 'api' : state.settings.connectionType;
-    state.settings.edcSubdomain = document.getElementById('edcSubdomain')?.value || '';
+    state.settings.edcIp = document.getElementById('edcIp')?.value || '';
     state.settings.edcPort = document.getElementById('edcPort')?.value || '6746';
     state.settings.posAddress = document.getElementById('posAddress')?.value || '172.0.0.1';
     state.settings.secretKey = document.getElementById('secretKey')?.value || 'ECR2022secretKey';
@@ -1608,7 +1602,7 @@ function loadSettings() {
     const connectionTypeRadio = document.querySelector(`input[name="connectionType"][value="${connectionType}"]`);
     if (connectionTypeRadio) connectionTypeRadio.checked = true;
     
-    document.getElementById('edcSubdomain').value = state.settings.edcSubdomain || '';
+    document.getElementById('edcIp').value = state.settings.edcIp || '';
     document.getElementById('edcPort').value = state.settings.edcPort;
     document.getElementById('posAddress').value = state.settings.posAddress;
     document.getElementById('secretKey').value = state.settings.secretKey;
@@ -1686,18 +1680,15 @@ function updateConnectionFields() {
     const connectionType = document.querySelector('input[name="connectionType"]:checked')?.value || 'wss';
     const directEdcFields = document.getElementById('directEdcFields');
     const apiFields = document.getElementById('apiFields');
-    const domainModeBanner = document.getElementById('domainModeBanner');
     const apiModeBanner = document.getElementById('apiModeBanner');
     
     if (connectionType === 'api') {
         directEdcFields.style.display = 'none';
         apiFields.style.display = 'block';
-        if (domainModeBanner) domainModeBanner.style.display = 'none';
         if (apiModeBanner) apiModeBanner.style.display = 'block';
     } else {
         directEdcFields.style.display = 'block';
         apiFields.style.display = 'none';
-        if (domainModeBanner) domainModeBanner.style.display = 'block';
         if (apiModeBanner) apiModeBanner.style.display = 'none';
     }
 }
@@ -1786,7 +1777,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Log initial message
     log('POS Dummy ECR Link initialized', 'info');
     log('AES/ECB/PKCS5Padding encryption ready', 'info');
-    log('Please configure EDC subdomain in Settings', 'info');
+    log('Please configure EDC IP address in Settings', 'info');
 });
 
 // Handle protocol change to update default port
@@ -1803,207 +1794,33 @@ document.querySelectorAll('input[name="protocol"]').forEach(radio => {
 
 // ===== DNS Hosts Setup Functions =====
 function showHostsSetup() {
-    document.getElementById('hostsModal').classList.add('active');
-    
-    // Get subdomain from settings
-    const subdomain = state.settings.edcSubdomain || '[subdomain]';
-    const fullDomain = subdomain !== '[subdomain]' ? `${subdomain}.pcsindonesia.com` : '[subdomain].pcsindonesia.com';
-    
-    // Update modal content with user's subdomain
-    const modalDomain = document.getElementById('hostsModalDomain');
-    if (modalDomain) {
-        modalDomain.textContent = fullDomain;
-    }
-    
-    // Replace all placeholders in modal content
-    const modalContent = document.querySelector('#hostsModal .modal-body');
-    if (modalContent) {
-        // Replace ecrlink.pcsindonesia.com with actual domain
-        const html = modalContent.innerHTML;
-        const updatedHtml = html
-            .replace(/ecrlink\.pcsindonesia\.com/g, fullDomain)
-            .replace(/\[subdomain\]\.pcsindonesia\.com/g, fullDomain)
-            .replace(/\[subdomain\]/g, subdomain);
-        modalContent.innerHTML = updatedHtml;
-    }
-    
-    // Update Windows script link
-    const windowsLink = document.querySelector('a[href="setup-hosts-windows.bat"]');
-    if (windowsLink) {
-        // The script will be the same, but user needs to enter the domain when running
-        windowsLink.setAttribute('download', `setup-hosts-${subdomain}.bat`);
-    }
-    
-    // Update Mac/Linux script link
-    const macLink = document.querySelector('a[href="setup-hosts-macos-linux.sh"]');
-    if (macLink) {
-        macLink.setAttribute('download', `setup-hosts-${subdomain}.sh`);
-    }
-    
-    log('Opened DNS Hosts Setup dialog', 'info');
+    // No longer needed - using direct IP connection
+    log('Hosts setup is not needed in direct IP mode', 'info');
 }
 
 function closeHostsModal() {
-    document.getElementById('hostsModal').classList.remove('active');
-}
-
-function updateHostsExample() {
-    const ip = document.getElementById('hostsIpInput').value || '[IP_EDC]';
-    const subdomain = document.getElementById('hostsDomainInput').value || '[subdomain]';
-    const entry = `${ip} ${subdomain}.pcsindonesia.com`;
-    document.getElementById('hostsEntryExample').textContent = entry;
-    
-    // Update ping test example
-    const pingExample = document.getElementById('pingTestExample');
-    if (pingExample) {
-        if (subdomain && subdomain !== '[subdomain]') {
-            pingExample.textContent = `ping ${subdomain}.pcsindonesia.com`;
-        } else {
-            pingExample.textContent = 'ping [subdomain].pcsindonesia.com';
-        }
-    }
-    
-    // Update info box domain
-    const infoDomain = document.getElementById('hostsInfoDomain');
-    if (infoDomain) {
-        if (subdomain && subdomain !== '[subdomain]') {
-            infoDomain.textContent = `${subdomain}.pcsindonesia.com`;
-        } else {
-            infoDomain.textContent = '[subdomain].pcsindonesia.com';
-        }
-    }
-}
-
-function copyHostsEntry() {
-    const entry = document.getElementById('hostsEntryExample').textContent;
-    navigator.clipboard.writeText(entry).then(() => {
-        showToast('Copied', 'Hosts entry copied to clipboard', 'success');
-    }).catch(() => {
-        // Fallback
-        const textArea = document.createElement('textarea');
-        textArea.value = entry;
-        document.body.appendChild(textArea);
-        textArea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textArea);
-        showToast('Copied', 'Hosts entry copied to clipboard', 'success');
-    });
+    const modal = document.getElementById('hostsModal');
+    if (modal) modal.classList.remove('active');
 }
 
 // ===== Certificate Setup Functions =====
 function showCertificateSetup() {
-    document.getElementById('certificateModal').classList.add('active');
-    log('Opened Certificate Setup dialog', 'info');
+    // No longer needed - using direct IP connection
+    log('Certificate setup is not needed in direct IP mode', 'info');
 }
 
 function closeCertificateModal() {
-    document.getElementById('certificateModal').classList.remove('active');
+    const modal = document.getElementById('certificateModal');
+    if (modal) modal.classList.remove('active');
 }
 
-/**
- * Download CA Certificate
- * In real implementation, this would download the actual CA cert file
- */
+// Certificate download and verify no longer needed in direct IP mode
 function downloadCertificate() {
-    // Create a dummy certificate content (in production, this should be the real CA cert)
-    const certContent = `-----BEGIN CERTIFICATE-----
-MIIFXTCCA0WgAwIBAgIQV7A7ZQC+IWLm6+Nt56IvCzANBgkqhkiG9w0BAQsFADBH
-MRUwEwYDVQQKEwxQQ1MgSW5kb25lc2lhMSYwJAYDVQQDEx1QQ1MgSW5kb25lc2lh
-IENlcnRpZmljYXRlIEF1dGhvcml0eTAeFw0yNDAxMDEwMDAwMDBaFw0zNDAxMDEw
-MDAwMDBaMEcxFTATBgNVBAoTDFBDUyBJbmRvbmVzaWExJjAkBgNVBAMTHVBDUyBJ
-bmRvbmVzaWEgQ2VydGlmaWNhdGUgQXV0aG9yaXR5MIICIjANBgkqhkiG9w0BAQEF
-AAOCAg8AMIICCgKCAgEAygw/LGfMYyAac7Yo5qqOYZw5rfw+AgQ8j7kg5OfE+4J3
-q2dfH+Ls7Oq6YrlncJpFQeSR8D35dlO4jNbGnnAJDU7NdNIL+hx/hqTRYpfZ1FM5
-1l/dxOI9p0SPZ0HvwhbkQY8ZvBZJCRYBW4vJUf/IMWNiSpfoDV8LWL7gKt+Gxg9B
-TtHrXmJRT/QxE22qLIFdaGh9hxCrdEYvvkWYpHAiePQSUfVgYnZxZutDcafwO4Fa
-VKn/cuPO2lCq/DSD+2Ft0mRsR7K6hOxrLbfHraKRCmS/44vZLWvBGloaXJ5K6nuH
-a523+0DSLYuzqdhy4sZzFjaJA+rJOZXRIDKb4V3LWQIDAQABo4IBKDCCASQwDgYD
-VR0PAQH/BAQDAgGGMB0GA1UdJQQWMBQGCCsGAQUFBwMBBggrBgEFBQcDAjASBgNV
-HRMBAf8ECDAGAQH/AgEAMB0GA1UdDgQWBBQj8L6zEtxkMf0nN6x6jK2Jl3hIqzAf
-BgNVHSMEGDAWgBQj8L6zEtxkMf0nN6x6jK2Jl3hIqzA4BggrBgEFBQcBAQQsMCow
-KAYIKwYBBQUHMAGGHGh0dHA6Ly9vY3NwLmNvbW9kb2NhLmNvbS9jYTAnBgNVHR8E
-IDAeMBygGqAYhhZodHRwOi8vY3JsLmNvbW9kb2NhLmNvbTAzBgNVHSAELDAqMA8G
-DSsGAQQBgjcVPTEBAgEEMQwGCisGAQQBgjcVATAIBgZngQwBAgIwDQYJKoZIhvcN
-AQELBQADggIBAKaKUSUVzC8VQXtmyuPs3K/qhZS7bU6Vg8kS9LWqQ5RV7dM6jLKG
-kxv8KCC7uK3mV1G4r8U8E2oF7X7vJdFJKY8OLGAFPLgG7Yr3j4gqf9BQ2Vx8pDB
-fV5LKZLFGv8Hh4G0qH8x0MPLb0VBKm8+fHVX9gBp7oCv3l8CKH0R0Fb9GW9ZD1Yk
-A2FZ0c3GkH5pQ3CCt6fEHmSLMVQBhd5o8d3B1LJx5Gpj5qK6hN9M5v7ERf7hF0qS
-1qg6uLxQ7MO2gXNv7gTYrE9F3vT7X0lK9zjR3RF9qT3Bl5qN0vTl3qR8tN7Y0qT=
------END CERTIFICATE-----`;
-
-    // Create blob and download
-    const blob = new Blob([certContent], { type: 'application/x-x509-ca-cert' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'pcsindonesia_ca.crt';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    log('Certificate downloaded: pcsindonesia_ca.crt', 'success');
-    showToast('Success', 'Certificate downloaded. Please install it to Trusted Root CA.', 'success');
-    
-    // Highlight step 2
-    document.getElementById('certStep2').style.background = '#fef3c7';
-    setTimeout(() => {
-        document.getElementById('certStep2').style.background = '';
-    }, 2000);
+    log('Certificate download is not needed in direct IP mode', 'info');
 }
 
-/**
- * Verify certificate installation by testing WSS connection
- */
-async function verifyCertificate() {
-    const resultDiv = document.getElementById('certVerifyResult');
-    resultDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing connection...';
-    resultDiv.className = 'verify-result';
-    
-    if (!state.settings.edcIp) {
-        resultDiv.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error: IP EDC belum di-setting. Silakan isi di menu Pengaturan.';
-        resultDiv.className = 'verify-result error';
-        return;
-    }
-    
-    const url = `wss://${state.settings.edcIp}:6746`;
-    
-    try {
-        const ws = new WebSocket(url);
-        
-        ws.onopen = () => {
-            resultDiv.innerHTML = '<i class="fas fa-check-circle"></i> Success! Sertifikat ter-install dengan benar. WSS connection berhasil.';
-            resultDiv.className = 'verify-result success';
-            ws.close();
-            log('Certificate verification successful', 'success');
-        };
-        
-        ws.onerror = (error) => {
-            resultDiv.innerHTML = '<i class="fas fa-times-circle"></i> Gagal! Sertifikat belum ter-install atau EDC tidak aktif. Pastikan sudah install sertifikat dan restart Chrome.';
-            resultDiv.className = 'verify-result error';
-            log('Certificate verification failed', 'error');
-        };
-        
-        ws.onclose = (event) => {
-            if (event.code === 1006) {
-                resultDiv.innerHTML = '<i class="fas fa-times-circle"></i> Gagal! Code 1006 - Sertifikat belum di-trust oleh browser. Pastikan install ke "Trusted Root Certification Authorities".';
-                resultDiv.className = 'verify-result error';
-            }
-        };
-        
-        // Timeout after 5 seconds
-        setTimeout(() => {
-            if (ws.readyState === WebSocket.CONNECTING) {
-                ws.close();
-                resultDiv.innerHTML = '<i class="fas fa-clock"></i> Timeout - Tidak bisa connect ke EDC. Pastikan EDC aktif dan IP benar.';
-                resultDiv.className = 'verify-result error';
-            }
-        }, 5000);
-        
-    } catch (error) {
-        resultDiv.innerHTML = `<i class="fas fa-times-circle"></i> Error: ${error.message}`;
-        resultDiv.className = 'verify-result error';
-    }
+function verifyCertificate() {
+    log('Certificate verification is not needed in direct IP mode', 'info');
 }
 
 // ===== Keyboard Shortcuts =====
@@ -2012,8 +1829,6 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
         closeModal();
         closePaymentModal();
-        closeCertificateModal();
-        closeHostsModal();
     }
     
     // F2 for payment

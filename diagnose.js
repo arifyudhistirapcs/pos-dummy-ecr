@@ -33,7 +33,7 @@ console.log('');
 console.log('%c4. Current Settings:', 'font-weight: bold');
 const settings = JSON.parse(localStorage.getItem('posDummySettings') || '{}');
 console.log('   Protocol:', settings.protocol || 'Not set');
-console.log('   Subdomain:', settings.edcSubdomain || 'Not set');
+console.log('   IP:', settings.edcIp || 'Not set');
 console.log('   Port:', settings.edcPort || 'Not set');
 console.log('');
 
