@@ -1255,6 +1255,9 @@ async function processPaymentViaAPI() {
             trx_id: payload.trx_id
         };
         
+        // Store for retry/re-push capability
+        state.lastApiRequest = { apiUrl, requestBody };
+        
         log(`API Request: ${apiUrl}`, 'info');
         
         // Send API request with CORS mode and 10s timeout
@@ -1338,8 +1341,11 @@ Check browser DevTools (F12) → Console → look for CORS errors.`);
                 
                 footerEl.innerHTML = `
                     <button class="btn btn-outline" onclick="closePaymentModal()">Tutup</button>
-                    <button class="btn btn-primary" onclick="checkTransactionStatus('${payload.trx_id}')">
-                        <i class="fas fa-search"></i> Cek Status Transaksi
+                    <button class="btn btn-outline" onclick="checkTransactionStatus('${payload.trx_id}')">
+                        <i class="fas fa-search"></i> Cek Status via Middleware
+                    </button>
+                    <button class="btn btn-primary" onclick="retryTransactionViaFMS()">
+                        <i class="fas fa-redo"></i> Cek Status via FMS (Re-push)
                     </button>
                 `;
                 return;
@@ -1400,10 +1406,10 @@ Check browser DevTools (F12) → Console → look for CORS errors.`);
             footerEl.innerHTML = `
                 <button class="btn btn-outline" onclick="closePaymentModal()">Tutup</button>
                 <button class="btn btn-outline" onclick="checkTransactionStatus('${trxId}')">
-                    <i class="fas fa-search"></i> Cek Status
+                    <i class="fas fa-search"></i> Cek Status via Middleware
                 </button>
-                <button class="btn btn-primary" onclick="closePaymentModal(); setTimeout(function(){ document.getElementById('payBtn').click(); }, 300);">
-                    <i class="fas fa-redo"></i> Retry
+                <button class="btn btn-primary" onclick="retryTransactionViaFMS()">
+                    <i class="fas fa-redo"></i> Cek Status via FMS (Re-push)
                 </button>
             `;
         } else {
@@ -1508,6 +1514,90 @@ async function checkTransactionStatus(trxId) {
             <button class="btn btn-outline" onclick="closePaymentModal()">Tutup</button>
             <button class="btn btn-primary" onclick="checkTransactionStatus('${trxId}')">
                 <i class="fas fa-sync-alt"></i> Coba Lagi
+            </button>
+        `;
+    }
+}
+
+// ===== Retry Transaction via FMS (Re-push same token) =====
+async function retryTransactionViaFMS() {
+    if (!state.lastApiRequest) {
+        showToast('Error', 'Tidak ada data transaksi untuk di-push ulang', 'error');
+        return;
+    }
+
+    const { apiUrl, requestBody } = state.lastApiRequest;
+    const detailsEl = document.getElementById('paymentDetails');
+    const footerEl = document.getElementById('paymentFooter');
+
+    detailsEl.innerHTML = `
+        <div style="text-align: center; padding: 2rem;">
+            <div class="spinner"></div>
+            <p style="margin-top: 1rem; color: var(--gray-600);">Re-push transaksi <strong>${requestBody.trx_id}</strong> via FMS...</p>
+        </div>
+    `;
+    footerEl.innerHTML = '';
+
+    log(`Re-pushing transaction via FMS: ${requestBody.trx_id}`, 'info');
+
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 60000);
+
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            mode: 'cors',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify(requestBody),
+            signal: controller.signal
+        }).catch(err => {
+            clearTimeout(timeoutId);
+            if (err.name === 'AbortError') throw new Error('FMS re-push timeout: middleware tidak merespon dalam 60 detik');
+            throw err;
+        });
+
+        clearTimeout(timeoutId);
+
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+            const errorMsg = data.error || `FMS Error: ${response.status}`;
+            throw new Error(errorMsg);
+        }
+
+        log(`FMS re-push response: ${JSON.stringify(data)}`, 'received');
+        handlePaymentResponse(data);
+
+        footerEl.style.display = 'flex';
+        footerEl.innerHTML = `<button class="btn btn-primary" onclick="closePaymentModal()">Tutup</button>`;
+
+    } catch (error) {
+        log(`FMS re-push error: ${error.message}`, 'error');
+
+        detailsEl.innerHTML = `
+            <div class="payment-result error">
+                <div class="result-title error">
+                    <i class="fas fa-exclamation-triangle"></i> FMS Re-push Gagal
+                </div>
+                <div class="result-item">
+                    <span class="result-label">Transaction ID</span>
+                    <span class="result-value">${requestBody.trx_id}</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">Error</span>
+                    <span class="result-value" style="color: var(--danger-color);">${error.message}</span>
+                </div>
+            </div>
+        `;
+
+        footerEl.style.display = 'flex';
+        footerEl.innerHTML = `
+            <button class="btn btn-outline" onclick="closePaymentModal()">Tutup</button>
+            <button class="btn btn-outline" onclick="checkTransactionStatus('${requestBody.trx_id}')">
+                <i class="fas fa-search"></i> Cek Status
+            </button>
+            <button class="btn btn-primary" onclick="retryTransactionViaFMS()">
+                <i class="fas fa-redo"></i> Coba Lagi
             </button>
         `;
     }
