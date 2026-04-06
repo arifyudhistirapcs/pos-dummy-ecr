@@ -1380,10 +1380,10 @@ Check browser DevTools (F12) → Console → look for CORS errors.`);
         footerEl.style.display = 'flex';
         
         // Check if this is a POS-side timeout (AbortError)
-        const isPosTimeout = error.message.includes('POS timeout');
-        const trxId = (typeof payload !== 'undefined' && payload && payload.trx_id) ? payload.trx_id : 'unknown';
+        const isPosTimeout = error.message.includes('POS timeout') || error.message.toLowerCase().includes('timeout');
+        const trxId = state.lastApiRequest?.requestBody?.trx_id || 'unknown';
         
-        if (isPosTimeout && trxId !== 'unknown') {
+        if (isPosTimeout) {
             detailsEl.innerHTML = `
                 <div class="payment-result error">
                     <div class="result-title error">
