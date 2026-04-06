@@ -31,6 +31,7 @@ const state = {
         actionType: 'Sale',
         // API settings (for middleware connection)
         apiUrl: 'https://development-ecrlink.pcsindonesia.com',
+        apiTimeout: 60,  // POS-side timeout in seconds for API mode
         mid: '',
         tid: ''
     },
@@ -1260,12 +1261,13 @@ async function processPaymentViaAPI() {
         
         log(`API Request: ${apiUrl}`, 'info');
         
-        // Send API request with CORS mode and 10s timeout
-        log(`[DEBUG] Fetching: ${apiUrl}`, 'info');
+        // Send API request with configurable timeout
+        const apiTimeoutMs = (state.settings.apiTimeout || 60) * 1000;
+        log(`[DEBUG] Fetching: ${apiUrl} (timeout: ${state.settings.apiTimeout || 60}s)`, 'info');
         log(`[DEBUG] Request body: ${JSON.stringify(requestBody).substring(0, 200)}...`, 'info');
         
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 60000);
+        const timeoutId = setTimeout(() => controller.abort(), apiTimeoutMs);
         
         const response = await fetch(apiUrl, {
             method: 'POST',
@@ -1281,7 +1283,7 @@ async function processPaymentViaAPI() {
             
             // Handle abort (timeout from POS side)
             if (err.name === 'AbortError') {
-                throw new Error('POS timeout: middleware tidak merespon dalam 60 detik');
+                throw new Error(`POS timeout: middleware tidak merespon dalam ${state.settings.apiTimeout || 60} detik`);
             }
             
             // Network error handling
@@ -1379,11 +1381,11 @@ Check browser DevTools (F12) → Console → look for CORS errors.`);
         detailsEl.style.display = 'block';
         footerEl.style.display = 'flex';
         
-        // Check if this is a POS-side timeout (AbortError)
-        const isPosTimeout = error.message.includes('POS timeout') || error.message.toLowerCase().includes('timeout');
+        // Check if this is any kind of timeout error
+        const isAnyTimeout = error.message.toLowerCase().includes('timeout');
         const trxId = state.lastApiRequest?.requestBody?.trx_id || 'unknown';
         
-        if (isPosTimeout) {
+        if (isAnyTimeout && state.lastApiRequest) {
             detailsEl.innerHTML = `
                 <div class="payment-result error">
                     <div class="result-title error">
@@ -1669,6 +1671,7 @@ function saveSettingsToState() {
     
     // API settings
     state.settings.apiUrl = document.getElementById('apiUrl')?.value || 'https://development-ecrlink.pcsindonesia.com';
+    state.settings.apiTimeout = parseInt(document.getElementById('apiTimeout')?.value) || 60;
     state.settings.mid = document.getElementById('mid')?.value || '';
     state.settings.tid = document.getElementById('tid')?.value || '';
     
@@ -1700,6 +1703,7 @@ function loadSettings() {
     
     // API settings
     document.getElementById('apiUrl').value = state.settings.apiUrl || 'https://development-ecrlink.pcsindonesia.com';
+    document.getElementById('apiTimeout').value = state.settings.apiTimeout || 60;
     document.getElementById('mid').value = state.settings.mid || '';
     document.getElementById('tid').value = state.settings.tid || '';
     

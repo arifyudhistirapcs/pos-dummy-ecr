@@ -305,6 +305,12 @@
                                         <small class="form-hint">Base URL middleware API (default: https://development-ecrlink.pcsindonesia.com)</small>
                                     </div>
                                     
+                                    <div class="form-group">
+                                        <label for="apiTimeout">POS Timeout (detik)</label>
+                                        <input type="number" id="apiTimeout" value="60" min="10" max="300" placeholder="60">
+                                        <small class="form-hint">Berapa lama POS menunggu response dari middleware (default: 60 detik)</small>
+                                    </div>
+                                    
                                     <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                                         <div class="form-group" style="margin-bottom: 0;">
                                             <label for="mid">Merchant ID (MID)</label>
